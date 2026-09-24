@@ -176,7 +176,7 @@ to laya inside `resolveJudge` as a PR to oh-my-pi core.
 - `server/laya-judge.cmd` — Windows launcher
 - `skills/laya-judge/SKILL.md` — when to use / when to escalate
 - `rules/laya-auto.md` — auto-routing rule (arithmetic excluded)
-- `commands/laya.md` + `hooks/pre/laya-status.ts` — `/laya` status command + pre-run hook
+- `commands/laya.md` + `hooks/pre/laya*.ts` — `/laya` status command, startup banner, live decision feed
 - `benchmark/` — reproducible accuracy + latency + gate proof
 - `demo/` — quiz/snake/tetris + maze (all seeded, `*-stats.json`),
   rendered through the shared `demo/style.py` look

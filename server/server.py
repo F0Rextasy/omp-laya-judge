@@ -12,6 +12,12 @@ import json
 import os
 import time
 
+# Cache-first: a local judge must answer without the hub (the "nothing leaves
+# the machine" claim includes this revision round-trip). Fresh install without
+# a cache: run once with HF_HUB_OFFLINE=0 to fetch checkpoints.
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+
 import core
 from mcp.server.fastmcp import FastMCP
 
@@ -40,7 +46,10 @@ def get_router():
 
         threads = int(os.environ.get("LAYA_THREADS") or os.cpu_count() or 1)
         torch.set_num_threads(threads)
-        torch.set_num_interop_threads(1)
+        try:
+            torch.set_num_interop_threads(1)
+        except RuntimeError:
+            pass  # settable once per process; tuning is best-effort, not a precondition
         names = [n.strip() for n in os.environ.get("LAYA_MODELS", "english,multilingual").split(",") if n.strip()]
         pinned = (os.environ.get("LAYA_MODEL") or "").strip()
         if pinned and pinned not in names:
@@ -113,6 +122,10 @@ def judge_batch(queries: str) -> str:
     items = json.loads(queries) if isinstance(queries, str) else queries
     if isinstance(items, dict):
         items = [items]
+    for item in items:
+        # Nested params arrive as JSON strings from MCP clients, same as judge()'s.
+        if isinstance(item.get("questions"), str):
+            item["questions"] = json.loads(item["questions"])
     results = core.run_batch(router, items, os.environ.get("LAYA_MODEL") or None)
     return json.dumps({
         "results": results,

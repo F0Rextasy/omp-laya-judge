@@ -1,5 +1,32 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- `server.py` startup: hub revision round-trip removed by default —
+  `HF_HUB_OFFLINE=1` cache-first (a local judge must answer with no network
+  once checkpoints are cached; `HF_HUB_OFFLINE=0` bootstraps a fresh install)
+  and `set_num_interop_threads` made idempotent so a failed eager start no
+  longer poisons every retry — the retry died with "...after parallel work
+  has started", masking the real network error as an interop crash.
+- `judge_batch`: nested `state`/`questions` accepted as JSON strings, mirroring
+  `judge()`'s inputs (`'str' object has no attribute 'items'` before — the
+  contract test only ever sent dicts).
+
+### Added
+
+- `hooks/pre/laya-live.ts`: live decision feed — footer status line per laya
+  call (`⚡ laya ▸ billing 0.74 · english · 185ms`, ⚠ when confidence < 0.6,
+  errors surfaced too) plus one per-turn summary card; same display channel
+  as the startup banner, driven by the `tool_result`/`turn_end` hook events.
+  omp delivers every MCP call twice (native event + the `write xd://` bridge)
+  with identical payloads — the pair counts as one decision, and any tool
+  spelling (`mcp__laya-judge__judge`, underscored names, device paths)
+  canonicalizes to the same match. Payloads carrying a stray second content
+  part (quoted fragment + markdown fence) parse via balanced JSON extraction
+  instead of failing the whole result.
+
 ## [0.3.0] - 2026-09-24
 
 Numbers-first release: every figure the README, chart, or GIF publishes is

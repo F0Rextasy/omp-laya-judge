@@ -157,6 +157,22 @@ class TestStdioContract(unittest.TestCase):
         self.assertEqual(out["count"], 1)
         self.assertIn("answers", out["results"][0])
 
+    def test_f_judge_batch_nested_json_strings(self):
+        # MCP clients mirror judge()'s inputs: state and questions as JSON strings.
+        # Fails on 'str' object has no attribute 'items' without judge_batch's
+        # nested normalization (caught by smoke after v0.3.0).
+        out = self._call_tool("judge_batch", {
+            "queries": json.dumps([
+                {"state": json.dumps({"text": "charged twice, refund the duplicate"}),
+                 "questions": json.dumps({"dept": {
+                     "type": "choice", "instructions": "Which department?",
+                     "criteria": {"billing": "invoices, payments, refunds",
+                                  "support": "technical help, bugs"}}})},
+            ]),
+        })
+        self.assertEqual(out["count"], 1)
+        self.assertEqual(out["results"][0]["answers"]["dept"]["choice"], "billing")
+
 
 if __name__ == "__main__":
     unittest.main()
