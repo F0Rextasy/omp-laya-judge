@@ -50,6 +50,11 @@ derived from a committed artifact (`benchmark/results.json`,
   `tests/test_calibration.py`).
 - `benchmark/before_after.py`: source for `assets/before-after.gif`,
   driven by `results.json` (the GIF previously had no generator).
+- `demo/style.py`: one shared look for all media (truetype badges,
+  colored probability bars, wrapped question text with markdown
+  stripped, palette-quantized GIF saves). Every asset in `assets/` is
+  re-rendered through it — the previous GIFs used PIL's 6px default
+  font and showed raw `*asterisks*` from the question states.
 - `tests/` — fast suite (core mapping, sidecar HTTP contract, repo
   hygiene, README-vs-artifact lint, calibration reproducibility) and
   slow suite (`LAYA_SLOW_TESTS=1`: model contract, MCP stdio handshake,

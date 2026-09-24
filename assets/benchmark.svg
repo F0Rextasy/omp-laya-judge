@@ -1,41 +1,64 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" font-family="monospace">
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="484" font-family="monospace">
 <rect width="100%" height="100%" fill="#0d1117"/>
-<text x="20" y="28" fill="#e6edf3" font-size="16">laya-judge: 8/12 correct, mean 160ms (p50 151, p95 215), 0 LLM tokens (CPU)</text>
-<text x="20" y="84" fill="#8b949e" font-size="12">dept exp=billing</text>
-<rect x="190" y="70" width="270" height="16" fill="#3fb950"/>
-<text x="468" y="84" fill="#e6edf3" font-size="12">145ms</text>
-<text x="20" y="114" fill="#8b949e" font-size="12">dept exp=support</text>
-<rect x="190" y="100" width="285" height="16" fill="#3fb950"/>
-<text x="483" y="114" fill="#e6edf3" font-size="12">153ms</text>
-<text x="20" y="144" fill="#8b949e" font-size="12">even exp=True</text>
-<rect x="190" y="130" width="279" height="16" fill="#f85149"/>
-<text x="477" y="144" fill="#e6edf3" font-size="12">150ms</text>
-<text x="20" y="174" fill="#8b949e" font-size="12">even exp=False</text>
-<rect x="190" y="160" width="285" height="16" fill="#3fb950"/>
-<text x="483" y="174" fill="#e6edf3" font-size="12">153ms</text>
-<text x="20" y="204" fill="#8b949e" font-size="12">sev exp=2</text>
-<rect x="190" y="190" width="287" height="16" fill="#3fb950"/>
-<text x="485" y="204" fill="#e6edf3" font-size="12">154ms</text>
-<text x="20" y="234" fill="#8b949e" font-size="12">sev exp=0</text>
-<rect x="190" y="220" width="279" height="16" fill="#f85149"/>
-<text x="477" y="234" fill="#e6edf3" font-size="12">150ms</text>
-<text x="20" y="264" fill="#8b949e" font-size="12">spam exp=False</text>
-<rect x="190" y="250" width="400" height="16" fill="#3fb950"/>
-<text x="598" y="264" fill="#e6edf3" font-size="12">215ms</text>
-<text x="20" y="294" fill="#8b949e" font-size="12">spam exp=True</text>
-<rect x="190" y="280" width="394" height="16" fill="#3fb950"/>
-<text x="592" y="294" fill="#e6edf3" font-size="12">212ms</text>
-<text x="20" y="324" fill="#8b949e" font-size="12">dept exp=support</text>
-<rect x="190" y="310" width="275" height="16" fill="#3fb950"/>
-<text x="473" y="324" fill="#e6edf3" font-size="12">148ms</text>
-<text x="20" y="354" fill="#8b949e" font-size="12">sev exp=3</text>
-<rect x="190" y="340" width="281" height="16" fill="#f85149"/>
-<text x="479" y="354" fill="#e6edf3" font-size="12">151ms</text>
-<text x="20" y="384" fill="#8b949e" font-size="12">even exp=True</text>
-<rect x="190" y="370" width="255" height="16" fill="#f85149"/>
-<text x="453" y="384" fill="#e6edf3" font-size="12">137ms</text>
-<text x="20" y="414" fill="#8b949e" font-size="12">sev exp=1</text>
-<rect x="190" y="400" width="281" height="16" fill="#3fb950"/>
-<text x="479" y="414" fill="#e6edf3" font-size="12">151ms</text>
-<text x="20" y="468" fill="#8b949e" font-size="11">green=correct red=miss · gate 0.6: 7/12 auto-accept, 2/4 misses caught, 2 escaped (29% false-accept) · CPU torch</text>
+<text x="20" y="28" fill="#e6edf3" font-size="17" font-weight="bold">laya-judge · 12-case bench · CPU</text>
+<rect x="20" y="42" width="106" height="22" rx="11" fill="none" stroke="#3fb950" stroke-width="1.5"/>
+<text x="30" y="58" fill="#3fb950" font-size="12" font-weight="bold">8/12 correct</text>
+<rect x="136" y="42" width="92" height="22" rx="11" fill="none" stroke="#58a6ff" stroke-width="1.5"/>
+<text x="146" y="58" fill="#58a6ff" font-size="12" font-weight="bold">mean 160ms</text>
+<rect x="238" y="42" width="84" height="22" rx="11" fill="none" stroke="#bc8cff" stroke-width="1.5"/>
+<text x="248" y="58" fill="#bc8cff" font-size="12" font-weight="bold">p50 151ms</text>
+<rect x="332" y="42" width="84" height="22" rx="11" fill="none" stroke="#f8bd10" stroke-width="1.5"/>
+<text x="342" y="58" fill="#f8bd10" font-size="12" font-weight="bold">p95 215ms</text>
+<rect x="426" y="42" width="77" height="22" rx="11" fill="none" stroke="#3fb950" stroke-width="1.5"/>
+<text x="436" y="58" fill="#3fb950" font-size="12" font-weight="bold">0 tokens</text>
+<rect x="190" y="74" width="380" height="16" rx="4" fill="#21262d"/>
+<text x="20" y="88" fill="#8b949e" font-size="12">dept exp=billing</text>
+<rect x="190" y="74" width="256" height="16" rx="4" fill="#3fb950"/>
+<text x="454" y="88" fill="#e6edf3" font-size="12">145ms</text>
+<rect x="190" y="104" width="380" height="16" rx="4" fill="#21262d"/>
+<text x="20" y="118" fill="#8b949e" font-size="12">dept exp=support</text>
+<rect x="190" y="104" width="270" height="16" rx="4" fill="#3fb950"/>
+<text x="468" y="118" fill="#e6edf3" font-size="12">153ms</text>
+<rect x="190" y="134" width="380" height="16" rx="4" fill="#21262d"/>
+<text x="20" y="148" fill="#8b949e" font-size="12">even exp=True</text>
+<rect x="190" y="134" width="265" height="16" rx="4" fill="#f85149"/>
+<text x="463" y="148" fill="#e6edf3" font-size="12">150ms</text>
+<rect x="190" y="164" width="380" height="16" rx="4" fill="#21262d"/>
+<text x="20" y="178" fill="#8b949e" font-size="12">even exp=False</text>
+<rect x="190" y="164" width="270" height="16" rx="4" fill="#3fb950"/>
+<text x="468" y="178" fill="#e6edf3" font-size="12">153ms</text>
+<rect x="190" y="194" width="380" height="16" rx="4" fill="#21262d"/>
+<text x="20" y="208" fill="#8b949e" font-size="12">sev exp=2</text>
+<rect x="190" y="194" width="272" height="16" rx="4" fill="#3fb950"/>
+<text x="470" y="208" fill="#e6edf3" font-size="12">154ms</text>
+<rect x="190" y="224" width="380" height="16" rx="4" fill="#21262d"/>
+<text x="20" y="238" fill="#8b949e" font-size="12">sev exp=0</text>
+<rect x="190" y="224" width="265" height="16" rx="4" fill="#f85149"/>
+<text x="463" y="238" fill="#e6edf3" font-size="12">150ms</text>
+<rect x="190" y="254" width="380" height="16" rx="4" fill="#21262d"/>
+<text x="20" y="268" fill="#8b949e" font-size="12">spam exp=False</text>
+<rect x="190" y="254" width="380" height="16" rx="4" fill="#3fb950"/>
+<text x="578" y="268" fill="#e6edf3" font-size="12">215ms</text>
+<rect x="190" y="284" width="380" height="16" rx="4" fill="#21262d"/>
+<text x="20" y="298" fill="#8b949e" font-size="12">spam exp=True</text>
+<rect x="190" y="284" width="375" height="16" rx="4" fill="#3fb950"/>
+<text x="573" y="298" fill="#e6edf3" font-size="12">212ms</text>
+<rect x="190" y="314" width="380" height="16" rx="4" fill="#21262d"/>
+<text x="20" y="328" fill="#8b949e" font-size="12">dept exp=support</text>
+<rect x="190" y="314" width="262" height="16" rx="4" fill="#3fb950"/>
+<text x="460" y="328" fill="#e6edf3" font-size="12">148ms</text>
+<rect x="190" y="344" width="380" height="16" rx="4" fill="#21262d"/>
+<text x="20" y="358" fill="#8b949e" font-size="12">sev exp=3</text>
+<rect x="190" y="344" width="267" height="16" rx="4" fill="#f85149"/>
+<text x="465" y="358" fill="#e6edf3" font-size="12">151ms</text>
+<rect x="190" y="374" width="380" height="16" rx="4" fill="#21262d"/>
+<text x="20" y="388" fill="#8b949e" font-size="12">even exp=True</text>
+<rect x="190" y="374" width="242" height="16" rx="4" fill="#f85149"/>
+<text x="440" y="388" fill="#e6edf3" font-size="12">137ms</text>
+<rect x="190" y="404" width="380" height="16" rx="4" fill="#21262d"/>
+<text x="20" y="418" fill="#8b949e" font-size="12">sev exp=1</text>
+<rect x="190" y="404" width="267" height="16" rx="4" fill="#3fb950"/>
+<text x="465" y="418" fill="#e6edf3" font-size="12">151ms</text>
+<text x="20" y="458" fill="#8b949e" font-size="11">green=correct red=miss · gate 0.6: 7/12 auto-accept, 2/4 misses caught</text>
+<text x="20" y="474" fill="#8b949e" font-size="11">2 escaped (29% false-accept) · CPU torch · source benchmark/results.json</text>
 </svg>

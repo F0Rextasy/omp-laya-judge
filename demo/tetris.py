@@ -183,35 +183,50 @@ def play(router, max_pieces=MAX_PIECES, seed=7):
 
 def to_gif(game, path):
     from PIL import Image, ImageDraw
+    import style as S
+
     cell, Wpx, Hpx = 18, W * 18, H * 18
     panel = 300
+    hues = [S.BLUE, S.PURPLE, S.YELLOW, S.CYAN, S.RED, S.DIM]
     imgs = []
     for i, f in enumerate(game["frames"]):
-        im = Image.new("RGB", (Wpx + panel, Hpx), (13, 17, 23))
+        im = Image.new("RGB", (Wpx + panel, Hpx), S.BG)
         d = ImageDraw.Draw(im)
-        pal = [(0, 0, 0), (88, 166, 255), (248, 189, 16), (188, 140, 255), (63, 185, 80),
-               (248, 81, 73), (57, 185, 204), (210, 153, 34)]
+        d.rounded_rectangle([Wpx + 4, 4, Wpx + panel - 4, Hpx - 4], radius=10,
+                            fill=S.PANEL, outline=S.BORDER, width=1)
+        pal = [(0, 0, 0), S.BLUE, S.YELLOW, S.PURPLE, S.GREEN, S.RED, S.CYAN,
+               (210, 153, 34)]
         for y, row in enumerate(f["board"]):
             for x, v in enumerate(row):
                 if v:
                     d.rectangle([x * cell + 1, y * cell + 1, x * cell + cell - 1, y * cell + cell - 1],
                                 fill=pal[v % len(pal)])
-        x0 = Wpx + 12
-        d.text((x0, 10), f"piece {f['n']} ({f['piece']})  score {f['score']}", fill=(230, 237, 243))
-        d.text((x0, 28), f"lines {f['total_lines']}  shields {game['shields']}", fill=(139, 148, 158))
-        y = 56
-        for o in f["options"]:
-            bar = int(o["p"] * 120)
-            tag = " SHIELD" if (o["id"] == f["executed"] and f["shield"]) else (" <<" if o["id"] == f["executed"] else "")
-            d.text((x0, y), o["id"], fill=(139, 148, 158))
-            d.rectangle([x0 + 24, y + 3, x0 + 24 + bar, y + 11],
-                        fill=(63, 185, 80) if o["id"] == f["executed"] else (48, 54, 61))
-            d.text((x0 + 152, y), f"{o['p']:.2f}{tag}", fill=(230, 237, 243))
-            y += 22
-        d.text((x0, y + 6), f"conf {f['conf']:.2f} - 0 LLM tokens", fill=(139, 148, 158))
+        x0 = Wpx + 16
+        d.text((x0, 12), f"piece {f['n']} · {f['piece']}",
+               font=S.font(19, bold=True), fill=S.FG)
+        S.badge_row(d, x0, 42, [(f"score {f['score']}", S.GREEN),
+                                (f"lines {f['total_lines']}", S.BLUE)],
+                    size=12, gap=6)
+        y = 82
+        for k, o in enumerate(f["options"]):
+            executed = o["id"] == f["executed"]
+            color = S.GREEN if executed else hues[k % len(hues)]
+            tag = " SHIELD" if executed and f["shield"] else ""
+            S.prob_bar(d, x0, y, 150, o["p"], color, label=o["id"],
+                       value=f"{o['p']:.2f}{tag}", label_w=26, size=13, h=14)
+            y += 24
+        y += 8
+        d.line([x0, y, x0 + panel - 32, y], fill=S.BORDER, width=1)
+        y += 12
+        S.prob_bar(d, x0, y, 150, f["conf"], S.PURPLE, label="conf",
+                   value=f"{f['conf']:.2f}", label_w=52, size=12, h=10)
+        y += 20
+        S.prob_bar(d, x0, y, 150, f["risk"], S.RED, label="risk",
+                   value=f"{f['risk']:.2f}", label_w=52, size=12, h=10)
+        S.badge_row(d, x0, Hpx - 34, [(f"shields {game['shields']}", S.YELLOW),
+                                      ("0 tokens", S.GREEN)], size=12, gap=6)
         imgs.append(im)
-    imgs[0].save(path, save_all=True, append_images=imgs[1:], duration=150, loop=0)
-    print("wrote", path, len(imgs), "frames")
+    S.save_gif(imgs, path, duration=150)
 
 
 def main():

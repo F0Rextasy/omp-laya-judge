@@ -101,41 +101,64 @@ def play(router):
 
 def to_gif(game, path):
     from PIL import Image, ImageDraw
-    W, H = 640, 400
+    import style as S
+
+    W, H = 720, 440
     imgs = []
     score = 0
+    scratch = ImageDraw.Draw(Image.new("RGB", (1, 1)))
     for r in game["results"]:
         if r["ok"]:
             score += 1
-        state_txt = json.dumps(r["state"])[:72]
-        opts = [f"{o} {'(picked)' if o == r['picked_disp'] else ''}".rstrip()
-                for o in r["options"]]
+        q_text = ", ".join(str(v) for v in r["state"].values())
+        q_lines = S.wrap(scratch, S.strip_md(q_text), S.font(17, bold=True), 664)
         for phase in range(14):
-            im = Image.new("RGB", (W, H), (13, 17, 23))
+            im = Image.new("RGB", (W, H), S.BG)
             d = ImageDraw.Draw(im)
-            d.text((20, 20), f"Q{r['n']}/{game['total']}: {state_txt}", fill=(230, 237, 243))
-            y = 60
-            for ox, opt in enumerate(r["options"]):
+            S.badge_row(d, 16, 14, [(f"Q {r['n']}/{game['total']}", S.BLUE),
+                                    (f"{r['ms']}ms", S.CYAN),
+                                    ("0 LLM tokens", S.GREEN)])
+            q_h = 22 + len(q_lines) * 24
+            top = S.panel(d, [16, 52, W - 16, 52 + q_h])
+            for li, line in enumerate(q_lines):
+                d.text((28, top + li * 24), line, font=S.font(17), fill=S.FG)
+            y = 52 + q_h + 16
+            for opt in r["options"]:
                 picked = (r["picked_disp"] == opt)
-                marker = ""
-                if phase >= 8:
-                    if picked:
-                        marker = ">> "
-                    elif opt == r["expected_disp"] and not r["ok"]:
-                        marker = "(correct) "
-                color = (63, 185, 80) if (phase >= 8 and picked and r["ok"]) else \
-                    (248, 81, 73) if (phase >= 8 and picked and not r["ok"]) else \
-                    (139, 148, 158)
-                d.text((30, y), f"{marker}{opt}", fill=color)
-                y += 26
-            d.text((20, H - 60),
-                   f"laya: {r['picked_disp']} (conf {r['conf']})" if phase >= 8 else "laya is judging...",
-                   fill=(230, 237, 243))
-            d.text((20, H - 34), f"score: {score}/{game['total']} - 0 LLM tokens",
-                   fill=(139, 148, 158))
+                expected = (r["expected_disp"] == opt)
+                reveal = phase >= 8
+                border, color, suffix = S.BORDER, S.FG, ""
+                if reveal and picked and r["ok"]:
+                    border, color, suffix = S.GREEN, S.GREEN, "✓ picked"
+                elif reveal and picked and not r["ok"]:
+                    border, color, suffix = S.RED, S.RED, "✗ picked"
+                elif reveal and expected and not r["ok"]:
+                    border, color, suffix = S.GREEN, S.GREEN, "✓ expected"
+                d.rounded_rectangle([40, y, W - 40, y + 40], radius=8,
+                                    fill=S.PANEL, outline=border, width=2)
+                opt_font = S.font(16, bold=bool(suffix))
+                d.text((56, y + 9), opt, font=opt_font, fill=color)
+                if suffix:
+                    tw = d.textlength(opt, font=opt_font)
+                    d.text((56 + tw + 14, y + 11), suffix, font=S.font(14), fill=color)
+                y += 50
+            if phase >= 8:
+                S.badge(d, 40, y + 4, f"laya → {r['picked_disp']}",
+                        S.GREEN if r["ok"] else S.RED, size=15)
+                S.prob_bar(d, 40, y + 42, 320, r["conf"],
+                           S.GREEN if r["ok"] else S.RED,
+                           label="confidence", value=f"{r['conf']:.2f}",
+                           label_w=110, h=16, size=14)
+            else:
+                d.text((40, y + 14), f"laya is judging{'.' * (phase % 4)}",
+                       font=S.font(15), fill=S.DIM)
+                S.prob_bar(d, 40, y + 42, 320, 0.0, S.BLUE,
+                           label="confidence", value="…",
+                           label_w=110, h=16, size=14)
+            S.badge_row(d, 16, H - 34, [(f"score {score}/{game['total']}", S.GREEN),
+                                        (f"mean {game['mean_ms']}ms", S.BLUE)])
             imgs.append(im)
-    imgs[0].save(path, save_all=True, append_images=imgs[1:], duration=120, loop=0)
-    print("wrote", path, len(imgs), "frames")
+    S.save_gif(imgs, path, duration=120)
 
 
 def main():

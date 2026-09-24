@@ -178,7 +178,8 @@ to laya inside `resolveJudge` as a PR to oh-my-pi core.
 - `rules/laya-auto.md` — auto-routing rule (arithmetic excluded)
 - `commands/laya.md` + `hooks/pre/laya-status.ts` — `/laya` status command + pre-run hook
 - `benchmark/` — reproducible accuracy + latency + gate proof
-- `demo/` — quiz/snake/tetris + maze (all seeded, `*-stats.json`)
+- `demo/` — quiz/snake/tetris + maze (all seeded, `*-stats.json`),
+  rendered through the shared `demo/style.py` look
 - `tests/` — fast + slow suites; `.github/workflows/test.yml` runs fast
 - `assets/` — `before-after.gif`, `benchmark.svg`, `quiz.gif`, `snake.gif`, `tetris.gif`
 

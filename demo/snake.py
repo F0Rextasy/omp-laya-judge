@@ -137,43 +137,56 @@ def play(router, max_steps=300, seed=7):
 
 def to_gif(game, path):
     from PIL import Image, ImageDraw
+    import style as S
+
     cell, Wpx = 30, W * 30
-    panel, Hpx = 250, H * 30
+    panel, Hpx = 260, H * 30
     imgs = []
     for i, f in enumerate(game["frames"]):
-        im = Image.new("RGB", (Wpx + panel, Hpx), (13, 17, 23))
+        im = Image.new("RGB", (Wpx + panel, Hpx), S.BG)
         d = ImageDraw.Draw(im)
+        d.rounded_rectangle([Wpx + 4, 4, Wpx + panel - 4, Hpx - 4], radius=10,
+                            fill=S.PANEL, outline=S.BORDER, width=1)
         for (x, y) in f["snake"]:
             d.rectangle([x * cell + 1, y * cell + 1, x * cell + cell - 1, y * cell + cell - 1],
-                        fill=(88, 166, 255))
+                        fill=S.BLUE)
         hx, hy = f["snake"][0]
         d.rectangle([hx * cell + 1, hy * cell + 1, hx * cell + cell - 1, hy * cell + cell - 1],
-                    fill=(63, 185, 80))
+                    fill=S.GREEN)
         if f["food"]:
             fx, fy = f["food"]
             d.ellipse([fx * cell + 6, fy * cell + 6, fx * cell + cell - 6, fy * cell + cell - 6],
-                      fill=(248, 81, 73))
-        x0 = Wpx + 14
-        d.text((x0, 12), f"move {i + 1}  score {game['score']}", fill=(230, 237, 243))
-        y = 40
+                      fill=S.RED)
+        x0 = Wpx + 16
+        d.text((x0, 12), f"move {i + 1}/{game['steps']}",
+               font=S.font(19, bold=True), fill=S.FG)
+        S.badge_row(d, x0, 42, [(f"score {game['score']}", S.GREEN),
+                                (f"shields {game['shields']}", S.YELLOW)],
+                    size=12, gap=6)
+        y = 84
         for m in DIRS:
             p = f["probs"].get(m, 0.0)
-            bar = int(p * 130)
-            tag = ""
-            if m == f["executed"]:
-                tag = " SHIELD" if f["shield"] else " <<"
-            d.text((x0, y), f"{m:5s}", fill=(139, 148, 158))
-            d.rectangle([x0 + 62, y + 3, x0 + 62 + bar, y + 11],
-                        fill=(63, 185, 80) if m == f["executed"] else (48, 54, 61))
-            d.text((x0 + 200, y), f"{p:.2f}{tag}", fill=(230, 237, 243))
+            executed = m == f["executed"]
+            shielded = f["shield"] and m == f["proposed"] and not executed
+            color = S.GREEN if executed else (S.BLUE if shielded else S.CYAN)
+            tag = " SHIELD" if executed and f["shield"] else (" »" if shielded else "")
+            S.prob_bar(d, x0, y, 90, p, color, label=m, value=f"{p:.2f}{tag}",
+                       label_w=46, size=13, h=14)
             y += 24
-        d.text((x0, y + 8), f"dead-end risk {f.get('risk', 0):.2f}", fill=(139, 148, 158))
-        d.text((x0, y + 26), f"food reachable {f.get('reach', 0):.2f}", fill=(139, 148, 158))
-        d.text((x0, y + 44), f"conf {f.get('conf', 0):.2f} - 0 LLM tokens", fill=(139, 148, 158))
-        d.text((x0, y + 62), "laya + cycle safety", fill=(88, 166, 255))
+        d.line([x0, y + 6, x0 + panel - 32, y + 6], fill=S.BORDER, width=1)
+        y += 18
+        for label, val, color in (("risk", f.get("risk", 0), S.RED),
+                                  ("reach", f.get("reach", 0), S.BLUE),
+                                  ("conf", f.get("conf", 0), S.PURPLE)):
+            S.prob_bar(d, x0, y, 90, val, color, label=label, value=f"{val:.2f}",
+                       label_w=46, size=12, h=10)
+            y += 20
+        if f["shield"]:
+            S.badge(d, x0, y + 8, "shield intervened", S.YELLOW, size=12)
+        S.badge_row(d, x0, Hpx - 34, [("0 tokens", S.GREEN), ("laya CPU", S.BLUE)],
+                    size=12, gap=6)
         imgs.append(im)
-    imgs[0].save(path, save_all=True, append_images=imgs[1:], duration=150, loop=0)
-    print("wrote", path, len(imgs), "frames")
+    S.save_gif(imgs, path, duration=150)
 
 
 def main():
