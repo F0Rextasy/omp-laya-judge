@@ -1,0 +1,11 @@
+{
+ "score": 12,
+ "steps": 300,
+ "shields": 12,
+ "judgments": 300,
+ "ms_total": 255730,
+ "mean_ms": 852,
+ "alive": true,
+ "seed": 7,
+ "policy": "planner features + laya choice + safety shield (compact prompt)"
+}

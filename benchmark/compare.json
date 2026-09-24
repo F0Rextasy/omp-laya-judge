@@ -1,0 +1,50 @@
+{
+ "english": {
+  "correct": 8,
+  "total": 12,
+  "mean_ms": 210,
+  "mean_conf": 0.676,
+  "tr": {
+   "correct": 2,
+   "total": 4,
+   "mean_ms": 438,
+   "mean_conf": 0.639
+  }
+ },
+ "typed-decisions": {
+  "correct": 8,
+  "total": 12,
+  "mean_ms": 198,
+  "mean_conf": 0.539,
+  "tr": {
+   "correct": 3,
+   "total": 4,
+   "mean_ms": 386,
+   "mean_conf": 0.355
+  }
+ },
+ "multilingual": {
+  "correct": 6,
+  "total": 12,
+  "mean_ms": 111,
+  "mean_conf": 0.763,
+  "tr": {
+   "correct": 2,
+   "total": 4,
+   "mean_ms": 103,
+   "mean_conf": 0.764
+  }
+ },
+ "random": {
+  "correct": 6,
+  "total": 12,
+  "mean_ms": 0,
+  "mean_conf": 0.0,
+  "tr": {
+   "correct": 0,
+   "total": 4,
+   "mean_ms": 0,
+   "mean_conf": 0.0
+  }
+ }
+}

@@ -1,0 +1,1 @@
+{"mcpServers": {"laya-judge": {"args": [], "command": "./server/laya-judge.cmd", "cwd": "./server", "description": "Local Laya System-1 judge: typed decisions without LLM calls", "env": {"LAYA_MODEL": "english", "PYTHONUNBUFFERED": "1"}, "timeout": 120000, "type": "stdio"}}}

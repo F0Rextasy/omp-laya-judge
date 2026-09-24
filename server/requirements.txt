@@ -1,0 +1,5 @@
+laya==0.3.4
+"mcp<2"
+torch
+"transformers>=4.48,<5"
+huggingface-hub

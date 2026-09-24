@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" font-family="monospace">
+<rect width="100%" height="100%" fill="#0d1117"/>
+<text x="20" y="28" fill="#e6edf3" font-size="16">laya-judge: 8/12 correct, mean 1025ms, 0 LLM tokens (CPU)</text>
+<text x="20" y="84" fill="#8b949e" font-size="12">dept exp=billing</text>
+<rect x="190" y="70" width="26" height="16" fill="#3fb950"/>
+<text x="224" y="84" fill="#e6edf3" font-size="12">362ms</text>
+<text x="20" y="114" fill="#8b949e" font-size="12">dept exp=support</text>
+<rect x="190" y="100" width="21" height="16" fill="#3fb950"/>
+<text x="219" y="114" fill="#e6edf3" font-size="12">292ms</text>
+<text x="20" y="144" fill="#8b949e" font-size="12">even exp=True</text>
+<rect x="190" y="130" width="15" height="16" fill="#f85149"/>
+<text x="213" y="144" fill="#e6edf3" font-size="12">212ms</text>
+<text x="20" y="174" fill="#8b949e" font-size="12">even exp=False</text>
+<rect x="190" y="160" width="23" height="16" fill="#3fb950"/>
+<text x="221" y="174" fill="#e6edf3" font-size="12">320ms</text>
+<text x="20" y="204" fill="#8b949e" font-size="12">sev exp=2</text>
+<rect x="190" y="190" width="35" height="16" fill="#3fb950"/>
+<text x="233" y="204" fill="#e6edf3" font-size="12">486ms</text>
+<text x="20" y="234" fill="#8b949e" font-size="12">sev exp=0</text>
+<rect x="190" y="220" width="22" height="16" fill="#f85149"/>
+<text x="220" y="234" fill="#e6edf3" font-size="12">305ms</text>
+<text x="20" y="264" fill="#8b949e" font-size="12">spam exp=False</text>
+<rect x="190" y="250" width="30" height="16" fill="#3fb950"/>
+<text x="228" y="264" fill="#e6edf3" font-size="12">411ms</text>
+<text x="20" y="294" fill="#8b949e" font-size="12">spam exp=True</text>
+<rect x="190" y="280" width="23" height="16" fill="#3fb950"/>
+<text x="221" y="294" fill="#e6edf3" font-size="12">319ms</text>
+<text x="20" y="324" fill="#8b949e" font-size="12">dept exp=support</text>
+<rect x="190" y="310" width="261" height="16" fill="#3fb950"/>
+<text x="459" y="324" fill="#e6edf3" font-size="12">3616ms</text>
+<text x="20" y="354" fill="#8b949e" font-size="12">sev exp=3</text>
+<rect x="190" y="340" width="400" height="16" fill="#f85149"/>
+<text x="598" y="354" fill="#e6edf3" font-size="12">5546ms</text>
+<text x="20" y="384" fill="#8b949e" font-size="12">even exp=True</text>
+<rect x="190" y="370" width="14" height="16" fill="#f85149"/>
+<text x="212" y="384" fill="#e6edf3" font-size="12">195ms</text>
+<text x="20" y="414" fill="#8b949e" font-size="12">sev exp=1</text>
+<rect x="190" y="400" width="17" height="16" fill="#3fb950"/>
+<text x="215" y="414" fill="#e6edf3" font-size="12">240ms</text>
+<text x="20" y="468" fill="#8b949e" font-size="11">green=correct red=miss · misses escalate to the LLM judge below confidence 0.6 · CPU torch, no GPU</text>
+</svg>

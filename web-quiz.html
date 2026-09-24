@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>laya quiz - benchmark replay (offline)</title>
+<style>
+ body { background: #0d1117; color: #e6edf3; font-family: monospace; max-width: 760px; margin: 2em auto; padding: 0 1em; }
+ .card { border: 1px solid #30363d; border-radius: 8px; padding: 1em; margin: 1em 0; }
+ .ok { border-left: 6px solid #3fb950; } .miss { border-left: 6px solid #f85149; }
+ .bar { height: 10px; background: #3fb950; border-radius: 4px; }
+ .meta { color: #8b949e; font-size: 0.9em; }
+ h1 { font-size: 1.3em; } button { background: #238636; color: #fff; border: 0; border-radius: 6px; padding: 0.5em 1.2em; font: inherit; cursor: pointer; }
+</style>
+</head>
+<body>
+<h1>laya quiz - offline benchmark replay</h1>
+<p class="meta">Recorded live judgments from <code>python demo/quiz.py</code>: real states, laya's pick vs expected, confidence, latency. 0 tokens.</p>
+<div>
+<button id="prev">&larr; prev</button>
+<button id="next">next &rarr;</button>
+<span id="pos" class="meta"></span>
+<span id="score" class="meta"></span>
+</div>
+<div id="card" class="card"></div>
+<script>
+const DATA = [{"n": 1, "picked": "billing", "picked_disp": "billing", "expected_disp": "billing", "expected": "billing", "ok": true, "conf": 0.59, "ms": 434, "state": {"email": "You were charged twice for invoice #4411. Refund the duplicate today.", "task": "route to the right department"}, "options": ["billing", "support", "security"]}, {"n": 2, "picked": true, "picked_disp": "yes", "expected_disp": "yes", "expected": true, "ok": true, "conf": 1.0, "ms": 399, "state": {"sms": "WIN $$$ FREE MONEY click http://bit.ly/x now", "task": "is this spam"}, "options": ["yes", "no"]}, {"n": 3, "picked": false, "picked_disp": "no", "expected_disp": "no", "expected": false, "ok": true, "conf": 0.77, "ms": 323, "state": {"sms": "Your package arrives tomorrow before noon.", "task": "is this spam"}, "options": ["yes", "no"]}, {"n": 4, "picked": 2, "picked_disp": "2", "expected_disp": "3", "expected": 3, "ok": false, "conf": 0.18, "ms": 225, "state": {"report": "Export deleted all customer records, no backup exists.", "task": "rate severity"}, "options": ["trivial", "minor", "major", "critical"]}, {"n": 5, "picked": 2, "picked_disp": "2", "expected_disp": "0", "expected": 0, "ok": false, "conf": 0.17, "ms": 227, "state": {"report": "Footer shows 2024 instead of 2025.", "task": "rate severity"}, "options": ["trivial", "minor", "major", "critical"]}, {"n": 6, "picked": "support", "picked_disp": "support", "expected_disp": "support", "expected": "support", "ok": true, "conf": 0.27, "ms": 230, "state": {"log": "NullPointerException at startup, app never opens.", "task": "route to the right department"}, "options": ["billing", "support", "security"]}, {"n": 7, "picked": true, "picked_disp": "yes", "expected_disp": "yes", "expected": true, "ok": true, "conf": 0.61, "ms": 180, "state": {"value": 42, "task": "even or odd"}, "options": ["yes", "no"]}, {"n": 8, "picked": "security", "picked_disp": "security", "expected_disp": "security", "expected": "security", "ok": true, "conf": 0.21, "ms": 235, "state": {"alert": "Multiple failed admin logins from an unknown country at 3am.", "task": "route to the right department"}, "options": ["billing", "support", "security"]}];
+let i = 0;
+const okCount = DATA.filter(d => d.ok).length;
+document.getElementById("score").textContent = ` overall: ${okCount}/${DATA.length} correct`;
+function draw() {
+  const d = DATA[i];
+  document.getElementById("pos").textContent = ` ${i+1}/${DATA.length}`;
+  const el = document.getElementById("card");
+  el.className = "card " + (d.ok ? "ok" : "miss");
+  const state = Object.entries(d.state).map(([k,v]) => `<div><b>${k}:</b> ${v}</div>`).join("");
+  const pct = Math.round(d.conf * 100);
+  el.innerHTML =
+    `<div class="meta">Q${d.n} ${d.ok ? "&#10003; correct" : "&#10007; MISS"} &middot; ${d.ms}ms &middot; 0 tokens</div>`
+    + state
+    + `<div>options: ${d.options.join(" / ")}</div>`
+    + `<div>laya picked: <b>${d.picked_disp}</b> &middot; expected: <b>${d.expected_disp}</b></div>`
+    + `<div class="meta">confidence ${d.conf}</div>`
+    + `<div style="background:#21262d;border-radius:4px"><div class="bar" style="width:${pct}%"></div></div>`
+    + (!d.ok && d.conf < 0.2 ? `<div class="meta">low confidence (&lt; 0.2) &rarr; would escalate to LLM judge()</div>` : "");
+}
+document.getElementById("prev").onclick = () => { i = (i - 1 + DATA.length) % DATA.length; draw(); };
+document.getElementById("next").onclick = () => { i = (i + 1) % DATA.length; draw(); };
+draw();
+</script>
+</body>
+</html>

@@ -1,0 +1,193 @@
+{
+ "load_s": 25.8,
+ "cases": 12,
+ "correct": 8,
+ "accuracy": 0.667,
+ "total_ms": 12304,
+ "mean_ms": 1025,
+ "min_ms": 195,
+ "max_ms": 5546,
+ "llm_tokens_burned": 0,
+ "rows": [
+  {
+   "qid": "dept",
+   "expected": "billing",
+   "got": {
+    "choice": "billing",
+    "probabilities": {
+     "billing": 0.9805,
+     "support": 0.0195
+    },
+    "confidence": 0.8614
+   },
+   "ok": true,
+   "ms": 362
+  },
+  {
+   "qid": "dept",
+   "expected": "support",
+   "got": {
+    "choice": "support",
+    "probabilities": {
+     "billing": 0.0472,
+     "support": 0.9528
+    },
+    "confidence": 0.7254
+   },
+   "ok": true,
+   "ms": 292
+  },
+  {
+   "qid": "even",
+   "expected": true,
+   "got": {
+    "bool": 0.1967,
+    "confidence": 0.8033
+   },
+   "ok": false,
+   "ms": 212
+  },
+  {
+   "qid": "even",
+   "expected": false,
+   "got": {
+    "bool": 0.2003,
+    "confidence": 0.7997
+   },
+   "ok": true,
+   "ms": 320
+  },
+  {
+   "qid": "sev",
+   "expected": 2,
+   "got": {
+    "score": 1.5435,
+    "legend": {
+     "0": "trivial",
+     "1": "minor",
+     "2": "major",
+     "3": "critical"
+    },
+    "probabilities": {
+     "0": 0.0257,
+     "1": 0.4193,
+     "2": 0.5406,
+     "3": 0.0143
+    },
+    "confidence": 0.3855
+   },
+   "ok": true,
+   "ms": 486
+  },
+  {
+   "qid": "sev",
+   "expected": 0,
+   "got": {
+    "score": 0.542,
+    "legend": {
+     "0": "trivial",
+     "1": "minor",
+     "2": "major",
+     "3": "critical"
+    },
+    "probabilities": {
+     "0": 0.5016,
+     "1": 0.4627,
+     "2": 0.0277,
+     "3": 0.0079
+    },
+    "confidence": 0.3938
+   },
+   "ok": false,
+   "ms": 305
+  },
+  {
+   "qid": "spam",
+   "expected": false,
+   "got": {
+    "bool": 0.077,
+    "confidence": 0.923
+   },
+   "ok": true,
+   "ms": 411
+  },
+  {
+   "qid": "spam",
+   "expected": true,
+   "got": {
+    "bool": 1.0,
+    "confidence": 1.0
+   },
+   "ok": true,
+   "ms": 319
+  },
+  {
+   "qid": "dept",
+   "expected": "support",
+   "got": {
+    "choice": "support",
+    "probabilities": {
+     "billing": 0.0918,
+     "support": 0.9082
+    },
+    "confidence": 0.5576
+   },
+   "ok": true,
+   "ms": 3616
+  },
+  {
+   "qid": "sev",
+   "expected": 3,
+   "got": {
+    "score": 2.4256,
+    "legend": {
+     "0": "trivial",
+     "1": "minor",
+     "2": "major",
+     "3": "critical"
+    },
+    "probabilities": {
+     "0": 0.0025,
+     "1": 0.0169,
+     "2": 0.5331,
+     "3": 0.4475
+    },
+    "confidence": 0.438
+   },
+   "ok": false,
+   "ms": 5546
+  },
+  {
+   "qid": "even",
+   "expected": true,
+   "got": {
+    "bool": 0.1629,
+    "confidence": 0.8371
+   },
+   "ok": false,
+   "ms": 195
+  },
+  {
+   "qid": "sev",
+   "expected": 1,
+   "got": {
+    "score": 0.8838,
+    "legend": {
+     "0": "trivial",
+     "1": "minor",
+     "2": "major",
+     "3": "critical"
+    },
+    "probabilities": {
+     "0": 0.2226,
+     "1": 0.6933,
+     "2": 0.0619,
+     "3": 0.0222
+    },
+    "confidence": 0.3903
+   },
+   "ok": true,
+   "ms": 240
+  }
+ ]
+}

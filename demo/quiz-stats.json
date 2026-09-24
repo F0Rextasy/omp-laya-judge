@@ -1,0 +1,159 @@
+{
+ "results": [
+  {
+   "n": 1,
+   "picked": "billing",
+   "picked_disp": "billing",
+   "expected_disp": "billing",
+   "expected": "billing",
+   "ok": true,
+   "conf": 0.59,
+   "ms": 434,
+   "state": {
+    "email": "You were charged twice for invoice #4411. Refund the duplicate today.",
+    "task": "route to the right department"
+   },
+   "options": [
+    "billing",
+    "support",
+    "security"
+   ]
+  },
+  {
+   "n": 2,
+   "picked": true,
+   "picked_disp": "yes",
+   "expected_disp": "yes",
+   "expected": true,
+   "ok": true,
+   "conf": 1.0,
+   "ms": 399,
+   "state": {
+    "sms": "WIN $$$ FREE MONEY click http://bit.ly/x now",
+    "task": "is this spam"
+   },
+   "options": [
+    "yes",
+    "no"
+   ]
+  },
+  {
+   "n": 3,
+   "picked": false,
+   "picked_disp": "no",
+   "expected_disp": "no",
+   "expected": false,
+   "ok": true,
+   "conf": 0.77,
+   "ms": 323,
+   "state": {
+    "sms": "Your package arrives tomorrow before noon.",
+    "task": "is this spam"
+   },
+   "options": [
+    "yes",
+    "no"
+   ]
+  },
+  {
+   "n": 4,
+   "picked": 2,
+   "picked_disp": "2",
+   "expected_disp": "3",
+   "expected": 3,
+   "ok": false,
+   "conf": 0.18,
+   "ms": 225,
+   "state": {
+    "report": "Export deleted all customer records, no backup exists.",
+    "task": "rate severity"
+   },
+   "options": [
+    "trivial",
+    "minor",
+    "major",
+    "critical"
+   ]
+  },
+  {
+   "n": 5,
+   "picked": 2,
+   "picked_disp": "2",
+   "expected_disp": "0",
+   "expected": 0,
+   "ok": false,
+   "conf": 0.17,
+   "ms": 227,
+   "state": {
+    "report": "Footer shows 2024 instead of 2025.",
+    "task": "rate severity"
+   },
+   "options": [
+    "trivial",
+    "minor",
+    "major",
+    "critical"
+   ]
+  },
+  {
+   "n": 6,
+   "picked": "support",
+   "picked_disp": "support",
+   "expected_disp": "support",
+   "expected": "support",
+   "ok": true,
+   "conf": 0.27,
+   "ms": 230,
+   "state": {
+    "log": "NullPointerException at startup, app never opens.",
+    "task": "route to the right department"
+   },
+   "options": [
+    "billing",
+    "support",
+    "security"
+   ]
+  },
+  {
+   "n": 7,
+   "picked": true,
+   "picked_disp": "yes",
+   "expected_disp": "yes",
+   "expected": true,
+   "ok": true,
+   "conf": 0.61,
+   "ms": 180,
+   "state": {
+    "value": 42,
+    "task": "even or odd"
+   },
+   "options": [
+    "yes",
+    "no"
+   ]
+  },
+  {
+   "n": 8,
+   "picked": "security",
+   "picked_disp": "security",
+   "expected_disp": "security",
+   "expected": "security",
+   "ok": true,
+   "conf": 0.21,
+   "ms": 235,
+   "state": {
+    "alert": "Multiple failed admin logins from an unknown country at 3am.",
+    "task": "route to the right department"
+   },
+   "options": [
+    "billing",
+    "support",
+    "security"
+   ]
+  }
+ ],
+ "score": 6,
+ "total": 8,
+ "ms_total": 2253,
+ "mean_ms": 282
+}
