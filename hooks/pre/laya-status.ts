@@ -11,7 +11,7 @@ export default function hook(pi: HookAPI): void {
 			customType: "laya-judge",
 			display: true,
 			content:
-				"● laya aktif — local System-1 judge (choice/bool/score, ~0.3s, 0 tokens). " +
+				"● laya aktif — local System-1 judge (choice/bool/score, mean 160ms, 0 tokens). " +
 				"Use mcp__laya-judge__judge for cheap classifications; escalate to the LLM " +
 				"when confidence < 0.6. `/laya-judge:laya` runs a live status check.",
 		});

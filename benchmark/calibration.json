@@ -1,0 +1,26 @@
+{
+ "gate": 0.6,
+ "source": "benchmark/results.json",
+ "cases": 12,
+ "correct": 8,
+ "auto_accept": 7,
+ "escalated": 5,
+ "auto_correct": 5,
+ "false_accept": 2,
+ "false_accept_rate": 0.286,
+ "misses_total": 4,
+ "misses_caught_by_gate": 2,
+ "misses_escaped": 2,
+ "escaped": [
+  {
+   "qid": "even",
+   "expected": true,
+   "confidence": 0.8033
+  },
+  {
+   "qid": "even",
+   "expected": true,
+   "confidence": 0.8371
+  }
+ ]
+}

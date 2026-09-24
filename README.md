@@ -1,21 +1,51 @@
 # omp-laya-judge
 
-Local System-1 judge for [oh-my-pi](https://github.com/can1357/oh-my-pi), powered by
-[laya](https://github.com/NandhaKishorM/laya). Typed decisions (`choice`/`bool`/`score`)
-in ~1s on CPU, **0 LLM tokens burned**, nothing leaves the machine.
+Local System-1 judge for [oh-my-pi](https://github.com/can1357/oh-my-pi),
+powered by [laya](https://github.com/NandhaKishorM/laya). Typed decisions
+(`choice`/`bool`/`score`) at **mean 160ms (p50 151ms, p95 215ms)** on CPU,
+**0 LLM tokens burned**, nothing leaves the machine.
 
 ![before/after](assets/before-after.gif)
 
-Measured head-to-head on the same classification questions (real model via
-`omp -p` vs this plugin on CPU, no GPU):
+## Measured head-to-head
+
+Same 12 classification questions, real model via `omp -p` vs this plugin
+on CPU, no GPU:
 
 | | LLM `judge()` | laya-judge |
 |---|---|---|
-| latency / question | ~18s (16–25s sampled) | ~0.35s (0.2–0.5s) |
-| tokens / question | ~700 | 0 |
-| accuracy (12-case bench) | n/a (reference) | 8/12, misses escalate < 0.6 confidence |
+| latency / question | 18.4s (16–25s sampled) | mean 160ms (p50 151ms, p95 215ms) |
+| tokens / question | 728 | 0 |
+| accuracy (12-case bench) | n/a (reference) | 8/12 |
 
-Checkpoint A/B/C + random (`benchmark/compare_models.py`):
+Reproduce everything below from committed artifacts:
+
+```sh
+python benchmark/run.py           # -> benchmark/results.json (schema 2)
+python benchmark/calibrate.py     # -> benchmark/calibration.json (gate metrics)
+python benchmark/chart.py         # -> assets/benchmark.svg
+python benchmark/before_after.py  # -> assets/before-after.gif
+```
+
+## The 0.6 gate, honestly
+
+Policy: answers with confidence ≥ 0.6 are auto-accepted, below escalates
+to the LLM. What that bought on the 12-case bench
+(`benchmark/calibration.json`, computed — not asserted):
+
+- **auto-accept 7/12**, 5 escalated to the LLM
+- 4 misses total: **2 caught by the gate**, 2 escaped
+- **false-accept 29%** (2 of the 7 auto-accepts were wrong)
+
+Both escapes are parity questions at confidence 0.80/0.84 — the model is
+confidently wrong on arithmetic. Confidence alone does not save you
+there, which is why `rules/laya-auto.md` and the skill exclude
+arithmetic/parity questions from auto-accept and route them to the LLM
+regardless of confidence.
+
+## Checkpoint A/B/C + random
+
+(`benchmark/compare.json`, reproduced by `benchmark/compare_models.py`):
 
 | | EN 12-case | TR 4-case | mean conf | mean ms |
 |---|---|---|---|---|
@@ -24,18 +54,18 @@ Checkpoint A/B/C + random (`benchmark/compare_models.py`):
 | multilingual | 6 | 2 | 0.76 | 111 |
 | random (coin flip) | 6 | 0 | — | 0 |
 
-Default stays `english`: tied-best on EN with the highest usable confidence
-(above the 0.6 auto-accept line), and the server already routes non-Latin
-scripts to `multilingual` per request. TR sample is small (4); the honest
-read is laya >> chance (2–3 vs 0), not a checkpoint coronation.
+TR sample is small (4); the honest read is laya >> chance (2–3 vs 0), not
+a checkpoint coronation.
 
 ![benchmark](assets/benchmark.svg)
 
+## Demos
+
 ![quiz game](assets/quiz.gif)
 
-Grounded quiz (`python demo/quiz.py`): **6/8, mean 282ms, 0 tokens** — both
-misses came in under 0.2 confidence, exactly the cases the escalate rule
-covers.
+Grounded quiz (`python demo/quiz.py`): **6/8, mean 282ms, 0 tokens** —
+both misses came in under 0.2 confidence, exactly the cases the escalate
+rule covers.
 
 ![snake](assets/snake.gif)
 
@@ -45,8 +75,8 @@ browser: open `web/snake.html` (canvas replay with live probability bars,
 play/pause/speed/scrub); quiz at `web-quiz.html`. Recipe (from
 [laya-mlx](https://github.com/mizorewww/laya-mlx)): a deterministic planner
 describes each direction over a tiny state (`Safe route: yes. Food reachable:
-a safety shield executes the best SAFE move. Short parallel criteria are the
-whole trick — greedy end-to-end choice without the planner scores 0 (see
+…`), a safety shield executes the best SAFE move. Short parallel criteria are
+the whole trick — greedy end-to-end choice without the planner scores 0 (see
 `demo/snake.py` header for the measured failure modes). Honest calibration:
 per-move confidences on game states run at noise level (0.005-0.05; the quiz
 gets 0.2-1.0 on text) — navigation is planner + shield with laya ranking, the
@@ -64,18 +94,19 @@ board, candidate cards with live probabilities, scrub).
 
 ## Languages
 
-The server lets laya route per request: English goes to the `english`
-checkpoint, other scripts to `multilingual` (downloaded once, ~0.7GB extra).
-Turkish works today (e.g. fatura/departman routing correct) but with lower
-confidence than English — treat Turkish answers under 0.6 as escalate, same
-rule as everything else. Set `LAYA_MODEL=english` in `.mcp.json` to pin.
+The server routes per request: Latin script → `english`, everything else →
+`multilingual` (one extra ~0.7GB download, then cached). Turkish works today
+(e.g. fatura/departman routing correct) but with lower confidence than
+English — the same 0.6 gate applies. To pin a checkpoint, set `LAYA_MODEL`
+in `.mcp.json`'s `env`; the manifest ships unpinned because pinning
+disables routing.
 
 ## Install (step by step)
 
 Requirements: Python 3.10+, `pip`, ~3GB disk (checkpoints), oh-my-pi.
 
 ```sh
-pip install -r server/requirements.txt   # laya, mcp<2, torch, transformers>=4.48,<5
+pip install -r server/requirements.txt   # laya==0.3.20, mcp<2, torch, transformers>=4.48,<5
 omp plugin marketplace add F0Rextasy/omp-marketplace
 omp plugin install laya-judge@forextasy  # or: omp plugin link ./omp-laya-judge
 omp plugin list                          # laya-judge should show ● enabled
@@ -87,15 +118,17 @@ Verify inside omp:
 Call the tool mcp__laya-judge__judge_info and reply with its exact JSON output.
 ```
 
-Expected: `{"model": "laya/english", "device": "cpu", ...}`. First judgment
-takes ~30s (checkpoint load), then ~0.3s each. If the server times out on
-connect, raise `timeout` in `.mcp.json` (default 30s is shorter than the load).
+Expected: `{"model": "laya/auto", "device": "cpu", "loaded": true, ...}`.
+First start imports torch and loads the checkpoint (~10s warm, longer on a
+cold machine while both checkpoints download — the manifest ships
+`timeout: 600000` for exactly that), then ~0.16s per judgment.
 
 Troubleshooting (all hit during development, all fixed in this repo):
 
 - `transformers` < 4.48 cannot load ModernBERT → pin `transformers>=4.48,<5`.
 - `mcp>=2` renamed FastMCP → pin `mcp<2`.
-- On Windows, torch must init in the main thread → the server preloads eagerly.
+- On Windows, torch must init in the main thread → the server preloads eagerly
+  and `judge_info` reports `startup_error` instead of hanging if it fails.
 - `python.EXE`/`py.EXE` uppercase spawn failures → use the shipped `.cmd` wrapper.
 
 ## Use
@@ -108,22 +141,47 @@ oh-my-pi's eval `judge()`:
 - `bool`: yes/no statement → `{bool: P(true)}` (laya `noul` head is `[false, true]`)
 - `score`: `criteria: [lowest … highest]` → `{score, legend, probabilities, confidence}`
 
-Every reply carries `model: "laya/english"`, per-call `latency_ms`, and laya's
-own `usage`/`routing` block so provenance survives in the transcript.
+Every reply carries `model` (`laya/english` or `laya/multilingual`, derived
+from laya's own routing block), per-call `latency_ms`, and laya's `usage`/
+`routing` block so provenance survives in the transcript.
+
+## Tests
+
+```sh
+python -m unittest discover -s . -t . -p "test_*.py"             # fast suite (CI)
+LAYA_SLOW_TESTS=1 python -m unittest discover -s . -t . -p "test_*.py"   # + model/stdio/routing/concurrency
+```
+
+The fast suite pins the mapping layer, the HTTP sidecar contract, repo
+hygiene (requirements/license/versions/manifest), and — via
+`tests/test_readme_lint.py` + `tests/test_calibration.py` — that every
+number on this page still matches the committed JSON. The slow suite needs
+cached checkpoints: accuracy floor, MCP stdio handshake against a spawned
+server, non-Latin routing, Turkish diacritics, and parallel judgments.
 
 ## Status: tool + skill, not yet the agent loop
 
 Honest scope: this plugin makes laya callable from any oh-my-pi session today.
 It is **not** yet wired into the eval `judge()` chain — the agent won't call it
-on its own; you (or your prompt) invoke it explicitly. Auto-routing cheap
-judgments to laya inside `resolveJudge` is the planned next step, as a PR to
-oh-my-pi core.
+on its own; you (or your prompt) invoke it explicitly. The HTTP sidecar
+(`server/sidecar.py`) is the stepping stone for auto-routing cheap judgments
+to laya inside `resolveJudge` as a PR to oh-my-pi core.
 
 ## Layout
 
-- `.mcp.json` — stdio server declaration (relative paths, lengthened timeout)
-- `server/server.py` — FastMCP server, eager checkpoint load
+- `.mcp.json` — stdio server declaration (unpinned, `timeout: 600000`)
+- `server/server.py` — FastMCP server, eager checkpoint load, auto-routing
+- `server/core.py` — pure mapping (no torch), batch + unpack layer
+- `server/sidecar.py` — HTTP sidecar (`POST /judge`, `GET /info`)
 - `server/laya-judge.cmd` — Windows launcher
 - `skills/laya-judge/SKILL.md` — when to use / when to escalate
-- `benchmark/` — reproducible accuracy + latency proof
-- `assets/` — `before-after.gif`, `benchmark.svg`, `quiz.gif`
+- `rules/laya-auto.md` — auto-routing rule (arithmetic excluded)
+- `commands/laya.md` + `hooks/pre/laya-status.ts` — `/laya` status command + pre-run hook
+- `benchmark/` — reproducible accuracy + latency + gate proof
+- `demo/` — quiz/snake/tetris + maze (all seeded, `*-stats.json`)
+- `tests/` — fast + slow suites; `.github/workflows/test.yml` runs fast
+- `assets/` — `before-after.gif`, `benchmark.svg`, `quiz.gif`, `snake.gif`, `tetris.gif`
+
+## License
+
+MIT

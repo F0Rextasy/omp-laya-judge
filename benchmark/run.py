@@ -3,7 +3,9 @@
 Run: python benchmark/run.py  (writes benchmark/results.json)
 """
 import json
+import math
 import os
+import statistics
 import sys
 import time
 
@@ -57,14 +59,16 @@ CASES = [
 
 
 def main() -> None:
+    t_start = time.time()
     import server as srv
+    import_s = round(time.time() - t_start, 1)
 
     # warmup (loads checkpoint, excluded from timing)
     t0 = time.time()
     srv.judge(json.dumps({"text": "warmup"}), json.dumps(
         {"q": {"type": "choice", "instructions": "Pick one.",
                "criteria": {"a": "first", "b": "second"}}}))
-    load_s = round(time.time() - t0, 1)
+    warmup_s = round(time.time() - t0, 1)
 
     rows = []
     correct = 0
@@ -87,13 +91,29 @@ def main() -> None:
         print(f"{mark} {qid:6s} expected={expected!r:10} ms={ms}")
 
     total_ms = sum(r["ms"] for r in rows)
+    ms_values = [r["ms"] for r in rows]
+    p50 = round(statistics.median(ms_values))
+    p95 = round(sorted(ms_values)[min(len(ms_values) - 1, math.ceil(0.95 * len(ms_values)) - 1)])
+    import laya
+    import torch
     result = {
-        "load_s": load_s,
+        "schema": 2,
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "protocol": {
+            "note": "warmup excluded; wall time per judge() call; CPU only",
+            "threads": torch.get_num_threads(),
+            "laya": getattr(laya, "__version__", "unknown"),
+            "torch": getattr(torch, "__version__", "unknown"),
+        },
+        "import_s": import_s,
+        "warmup_s": warmup_s,
         "cases": len(rows),
         "correct": correct,
         "accuracy": round(correct / len(rows), 3),
         "total_ms": total_ms,
         "mean_ms": round(total_ms / len(rows)),
+        "p50_ms": p50,
+        "p95_ms": p95,
         "min_ms": min(r["ms"] for r in rows),
         "max_ms": max(r["ms"] for r in rows),
         "llm_tokens_burned": 0,
@@ -102,8 +122,8 @@ def main() -> None:
     out_path = os.path.join(os.path.dirname(__file__), "results.json")
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=1)
-    print(f"\n{correct}/{len(rows)} correct, mean {result['mean_ms']}ms/judgment, "
-          f"0 LLM tokens. Results -> {out_path}")
+    print(f"\n{correct}/{len(rows)} correct, mean {result['mean_ms']}ms "
+          f"(p50 {p50} / p95 {p95}) per judgment, 0 LLM tokens. Results -> {out_path}")
 
 
 if __name__ == "__main__":
