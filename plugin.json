@@ -1,1 +1,1 @@
-{"description": "Local System-1 judge for oh-my-pi: typed decisions (choice/bool/score) in milliseconds, no LLM call, no tokens burned.", "license": "MIT", "name": "laya-judge", "version": "0.3.0"}
+{"description": "Local System-1 judge for oh-my-pi: typed decisions (choice/bool/score) in milliseconds, no LLM call, no tokens burned.", "license": "MIT", "name": "laya-judge", "version": "0.4.0"}
