@@ -74,6 +74,26 @@ class SidecarHTTPTest(unittest.TestCase):
         self.assertIn("usage", out)
         self.assertIsInstance(out["latency_ms"], int)
 
+    def test_oversized_systemone_is_chunked_and_merged(self):
+        # The `find` cascade sends 58 questions in one call, so the chunked
+        # path is a live route, not an edge case: every id must come back in
+        # one envelope with the model's provenance and summed usage.
+        questions = {f"q{i}": {"type": "bool", "instructions": f"is it case {i}?"}
+                     for i in range(sidecar.MAX_QUESTIONS + 4)}
+        status, out = self._request("/v1/systemone", {"state": "text", "questions": questions})
+        self.assertEqual(status, 200)
+        self.assertEqual(set(out["answers"]), set(questions))
+        self.assertTrue(all(a["type"] == "noul" for a in out["answers"].values()))
+        self.assertEqual(out["model"], "laya/english")
+        self.assertGreaterEqual(out["usage"]["input_tokens"], 0)
+
+    def test_oversized_systemone_over_total_is_422(self):
+        questions = {f"q{i}": {"type": "bool", "instructions": "?"}
+                     for i in range(sidecar.MAX_TOTAL_QUESTIONS + 1)}
+        status, out = self._request("/v1/systemone", {"state": "text", "questions": questions})
+        self.assertEqual(status, 422)
+        self.assertIn("error", out)
+
     def test_batch_list(self):
         status, out = self._request("/judge", [
             {"state": {"text": "a"}, "questions": {"q": {"type": "choice", "instructions": "?"}}},

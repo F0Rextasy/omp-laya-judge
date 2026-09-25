@@ -2,7 +2,7 @@
 
 Local System-1 judge for [oh-my-pi](https://github.com/can1357/oh-my-pi),
 powered by [laya](https://github.com/NandhaKishorM/laya). Typed decisions
-(`choice`/`bool`/`score`) at **mean 160ms (p50 151ms, p95 215ms)** on CPU,
+(`choice`/`bool`/`score`) at **mean 156ms (p50 194ms, p95 297ms)** on CPU,
 **0 LLM tokens burned**, nothing leaves the machine.
 
 ![before/after](assets/before-after.gif)
@@ -14,9 +14,9 @@ on CPU, no GPU:
 
 | | LLM `judge()` | laya-judge |
 |---|---|---|
-| latency / question | 18.4s (16–25s sampled) | mean 160ms (p50 151ms, p95 215ms) |
+| latency / question | 18.4s (16–25s sampled) | mean 156ms (p50 194ms, p95 297ms) |
 | tokens / question | 728 | 0 |
-| accuracy (12-case bench) | n/a (reference) | 8/12 |
+| accuracy (12-case bench) | n/a (reference) | 10/12 |
 
 Reproduce everything below from committed artifacts:
 
@@ -34,14 +34,19 @@ to the LLM. What that bought on the 12-case bench
 (`benchmark/calibration.json`, computed — not asserted):
 
 - **auto-accept 7/12**, 5 escalated to the LLM
-- 4 misses total: **2 caught by the gate**, 2 escaped
-- **false-accept 29%** (2 of the 7 auto-accepts were wrong)
+- 2 misses total: **both caught by the gate**, 0 escaped
+- **false-accept 0%** (0 of the 7 auto-accepts were wrong)
 
-Both escapes are parity questions at confidence 0.80/0.84 — the model is
-confidently wrong on arithmetic. Confidence alone does not save you
-there, which is why `rules/laya-auto.md` and the skill exclude
-arithmetic/parity questions from auto-accept and route them to the LLM
-regardless of confidence.
+Both misses are `score` questions — the severity head lands on the right
+neighbourhood (2.4 for a 3) but not the exact bucket, and both sit under the
+gate, so they escalate instead of being trusted.
+
+Arithmetic no longer reaches the model at all. The parity misses that used to
+escape at confidence 0.80/0.84 are answered by exact arithmetic in
+`server/core.py:resolve_arithmetic`, which claims a yes/no question only when
+the state carries exactly one distinct number and the instruction names an
+operation on it (parity, primality, divisibility, comparison). Everything
+ambiguous is still laya's.
 
 ## Checkpoint A/B/C + random
 

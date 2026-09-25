@@ -1,23 +1,23 @@
 {
  "schema": 2,
- "timestamp": "2026-09-24T19:43:01Z",
+ "timestamp": "2026-09-25T22:00:11Z",
  "protocol": {
   "note": "warmup excluded; wall time per judge() call; CPU only",
   "threads": 6,
   "laya": "0.3.20",
   "torch": "2.14.0+cpu"
  },
- "import_s": 10.3,
+ "import_s": 34.9,
  "warmup_s": 0.1,
  "cases": 12,
- "correct": 8,
- "accuracy": 0.667,
- "total_ms": 1919,
- "mean_ms": 160,
- "p50_ms": 151,
- "p95_ms": 215,
- "min_ms": 137,
- "max_ms": 215,
+ "correct": 10,
+ "accuracy": 0.833,
+ "total_ms": 1871,
+ "mean_ms": 156,
+ "p50_ms": 194,
+ "p95_ms": 297,
+ "min_ms": 0,
+ "max_ms": 297,
  "llm_tokens_burned": 0,
  "rows": [
   {
@@ -32,7 +32,7 @@
     "confidence": 0.8614
    },
    "ok": true,
-   "ms": 145
+   "ms": 194
   },
   {
    "qid": "dept",
@@ -46,27 +46,27 @@
     "confidence": 0.7254
    },
    "ok": true,
-   "ms": 153
+   "ms": 195
   },
   {
    "qid": "even",
    "expected": true,
    "got": {
-    "bool": 0.1967,
-    "confidence": 0.8033
+    "bool": 1.0,
+    "confidence": 1.0
    },
-   "ok": false,
-   "ms": 150
+   "ok": true,
+   "ms": 0
   },
   {
    "qid": "even",
    "expected": false,
    "got": {
-    "bool": 0.2003,
-    "confidence": 0.7997
+    "bool": 0.0,
+    "confidence": 1.0
    },
    "ok": true,
-   "ms": 153
+   "ms": 0
   },
   {
    "qid": "sev",
@@ -88,7 +88,7 @@
     "confidence": 0.3855
    },
    "ok": true,
-   "ms": 154
+   "ms": 163
   },
   {
    "qid": "sev",
@@ -110,7 +110,7 @@
     "confidence": 0.3938
    },
    "ok": false,
-   "ms": 150
+   "ms": 221
   },
   {
    "qid": "spam",
@@ -120,7 +120,7 @@
     "confidence": 0.923
    },
    "ok": true,
-   "ms": 215
+   "ms": 297
   },
   {
    "qid": "spam",
@@ -130,7 +130,7 @@
     "confidence": 1.0
    },
    "ok": true,
-   "ms": 212
+   "ms": 229
   },
   {
    "qid": "dept",
@@ -144,7 +144,7 @@
     "confidence": 0.5576
    },
    "ok": true,
-   "ms": 148
+   "ms": 155
   },
   {
    "qid": "sev",
@@ -166,17 +166,17 @@
     "confidence": 0.438
    },
    "ok": false,
-   "ms": 151
+   "ms": 197
   },
   {
    "qid": "even",
    "expected": true,
    "got": {
-    "bool": 0.1629,
-    "confidence": 0.8371
+    "bool": 1.0,
+    "confidence": 1.0
    },
-   "ok": false,
-   "ms": 137
+   "ok": true,
+   "ms": 0
   },
   {
    "qid": "sev",
@@ -198,7 +198,7 @@
     "confidence": 0.3903
    },
    "ok": true,
-   "ms": 151
+   "ms": 220
   }
  ]
 }

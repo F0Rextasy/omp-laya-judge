@@ -16,8 +16,22 @@
   `other` (the pattern was end-anchored while its sibling `route:` was not), a
   12-character label ran into its own bar, and a pick whose text already opens
   with its kind (`notes=CHANGELOG.md`) printed that word twice.
+- Arithmetic questions no longer reach the model. `core.resolve_arithmetic`
+  settles parity, primality, divisibility and threshold comparisons exactly,
+  and only claims a question when the state carries a single distinct number
+  and the instruction names an operation on it. The bench measured why: both
+  parity misses sat at confidence 0.80-0.84, above the 0.6 gate, so no
+  threshold could have caught them. Measured after the change: **10/12
+  correct** (was 8/12), **0 escapes**, **false-accept 0%** (was 29%), and the
+  two remaining misses are `score` questions the gate now catches. Wired into
+  all three surfaces — `/judge`, `/v1/systemone` and `judge_batch`.
 
 ### Fixed
+
+- `POST /v1/systemone` with more than `LAYA_MAX_QUESTIONS` questions raised
+  `NameError: merged` (the chunked path referenced a variable that was never
+  assigned) and returned 500 for every wide request - the `find` cascade asks
+  58 questions in one call, so this was a live route.
 
 - Sidecar startup is cache-first by default: `HF_HUB_OFFLINE=1` keeps local
   operation independent of the hub (set `HF_HUB_OFFLINE=0` only to bootstrap

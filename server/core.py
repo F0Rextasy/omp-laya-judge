@@ -15,6 +15,7 @@ Answer shapes (two consumers, both preserved from v0.2.0 contracts):
   raw_result()    -> sidecar shape:      laya's answer dicts verbatim
 """
 import json
+import re
 import threading
 import time
 from typing import Any, Dict, List, Optional, Tuple
@@ -28,6 +29,92 @@ DEFAULT_MODEL = "laya-rl-agent"
 # callers queue instead of crashing; torch still parallelizes inside one
 # predict (LAYA_THREADS), so throughput keeps the measured 6-thread speedup.
 PREDICT_LOCK = threading.Lock()
+
+
+# A semantic encoder is a guesser, and on arithmetic it guesses confidently
+# wrong: both parity misses in the 12-case bench landed at confidence 0.80-0.84,
+# above the 0.6 escalation gate, so the gate could not catch them. Questions
+# exact arithmetic can settle never reach the model. The resolver stays
+# deliberately narrow - a state carrying exactly one distinct number and a
+# yes/no question about that number - because guessing is worse than asking
+# laya whenever the shape is ambiguous.
+_NUMBER_RE = re.compile(r"-?\d+(?:\.\d+)?")
+
+_THRESHOLD_PREDICATES = (
+    (r"(?:divisible by|multiple of)", lambda value, bound: value % bound == 0),
+    (r"(?:greater than|more than|larger than|higher than|at least|above|exceeds|over)",
+     lambda value, bound: value > bound),
+    (r"(?:less than|smaller than|lower than|fewer than|at most|below|under)",
+     lambda value, bound: value < bound),
+    (r"(?:equal to|equals)", lambda value, bound: value == bound),
+)
+
+
+def _sole_number(state: Any) -> Optional[float]:
+    """The single number a state carries, or None when it is ambiguous."""
+    text = state if isinstance(state, str) else json.dumps(state, default=str)
+    values = {float(match) for match in _NUMBER_RE.findall(text)}
+    return values.pop() if len(values) == 1 else None
+
+
+def _is_prime(value: float) -> bool:
+    if value != int(value) or value < 2:
+        return False
+    candidate = int(value)
+    divisor = 2
+    while divisor * divisor <= candidate:
+        if candidate % divisor == 0:
+            return False
+        divisor += 1
+    return True
+
+
+def _arithmetic_answer(instructions: str, value: float) -> Optional[bool]:
+    text = instructions.strip().lower()
+    for keyword, predicate in (("even", lambda n: n % 2 == 0),
+                               ("odd", lambda n: n % 2 != 0),
+                               ("prime", _is_prime)):
+        if re.search(r"\bnot\s+%s\b" % keyword, text):
+            return not predicate(value)
+        if re.search(r"\b%s\b" % keyword, text):
+            return predicate(value)
+    for pattern, predicate in _THRESHOLD_PREDICATES:
+        match = re.search(pattern + r"\s+(-?\d+(?:\.\d+)?)", text)
+        if match:
+            bound = float(match.group(1))
+            if bound == 0:
+                return None
+            return predicate(value, bound)
+    return None
+
+
+def resolve_arithmetic(state: Any, questions: Optional[Dict[str, Any]]) -> Dict[str, bool]:
+    """yes/no questions about a state's only number, answered exactly.
+
+    Returns a sparse map of question id -> P(true) as a bool. Anything the
+    resolver does not recognize is simply absent, and the caller asks laya.
+    """
+    resolved: Dict[str, bool] = {}
+    if not questions:
+        return resolved
+    value = _sole_number(state)
+    if value is None:
+        return resolved
+    for qid, qdef in questions.items():
+        qdef = qdef or {}
+        if qdef.get("type") not in ("bool", "noul"):
+            continue
+        answer = _arithmetic_answer(str(qdef.get("instructions", "")), value)
+        if answer is not None:
+            resolved[qid] = answer
+    return resolved
+
+
+def arithmetic_answer_dicts(resolved: Dict[str, bool]) -> Dict[str, Dict[str, Any]]:
+    """Resolved booleans as laya noul answers, so every downstream consumer
+    (judge_result, systemone_result, the decision feed) stays unchanged."""
+    return {qid: {"noul": 1.0 if value else 0.0, "confidence": 1.0}
+            for qid, value in resolved.items()}
 
 
 def predict_locked(router: Any, state: Any, questions: Dict[str, Any],
@@ -189,24 +276,43 @@ def run_batch(router: Any, items: List[Dict[str, Any]], model: Optional[str]) ->
 
     Uses router.predict_batch (laya >= 0.3.20) when available — one forward
     pass for the whole batch; otherwise falls back to sequential predicts.
-    Per-item latency_ms is the batch wall time split evenly, so the numbers
-    add up to what the caller actually waited.
+    Per-item latency_ms is the batch wall time split evenly across the items
+    that actually reached the model, so the numbers add up to what the caller
+    waited. Questions arithmetic settles never enter the batch at all.
     """
     if not items:
         return []
-    requests, all_kinds = batch_requests(items, model)
-    if hasattr(router, "predict_batch"):
-        t0 = time.time()
-        with PREDICT_LOCK:
-            raws = router.predict_batch(requests)
-        per_item = round((time.time() - t0) * 1000 / len(requests))
-        return [judge_result(raw, kinds, per_item) for raw, kinds in zip(raws, all_kinds)]
+    pending: List[Dict[str, Any]] = []
+    settled_per_item: List[Dict[str, bool]] = []
+    for item in items:
+        questions = item.get("questions") or {}
+        settled = resolve_arithmetic(item.get("state", ""), questions)
+        settled_per_item.append(settled)
+        pending.append({**item,
+                        "questions": {qid: qdef for qid, qdef in questions.items() if qid not in settled}})
+    requests, all_kinds = batch_requests(pending, model)
+    live = [req for req in requests if req["questions"]]
+    raws: Dict[int, Any] = {}
+    per_item = 0
+    if live:
+        if hasattr(router, "predict_batch"):
+            t0 = time.time()
+            with PREDICT_LOCK:
+                batch_raws = router.predict_batch(live)
+            raws = {id(req): raw for req, raw in zip(live, batch_raws)}
+            per_item = round((time.time() - t0) * 1000 / len(live))
+        else:
+            for req in live:
+                t0 = time.time()
+                raws[id(req)] = predict_locked(router, req["state"], req["questions"],
+                                               model=req.get("model"))
+                per_item = max(per_item, round((time.time() - t0) * 1000))
     results: List[Dict[str, Any]] = []
-    for req, kinds in zip(requests, all_kinds):
-        t0 = time.time()
-        raw = predict_locked(router, req["state"], req["questions"],
-                             model=req.get("model"))
-        results.append(judge_result(raw, kinds, round((time.time() - t0) * 1000)))
+    for req, kinds, settled in zip(requests, all_kinds, settled_per_item):
+        raw = raws.get(id(req)) or {"answers": {}}
+        if settled and isinstance(raw, dict):
+            raw.setdefault("answers", {}).update(arithmetic_answer_dicts(settled))
+        results.append(judge_result(raw, kinds, per_item))
     return results
 
 

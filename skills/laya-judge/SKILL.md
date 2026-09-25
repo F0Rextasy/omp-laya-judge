@@ -14,10 +14,11 @@ before spending LLM calls.
 
 ## When NOT to use
 
-- **Arithmetic, parity, counting, or symbolic logic** — ask "is 4 even?" and a
-  semantic encoder will guess confidently wrong (measured: both parity misses
-  in the 12-case bench sat at conf 0.80–0.84, above the 0.6 gate). Send any
-  question whose answer needs computation straight to the LLM.
+- **Multi-step arithmetic, counting, or symbolic logic** — parity,
+  primality, divisibility and plain comparisons are answered exactly before
+  the model is consulted (`server/core.py:resolve_arithmetic`), but only for a
+  state with a single unambiguous number. Wider computation is a confident
+  guess, not a measurement: send it to the LLM.
 - Nuanced reasoning, long context (>512-1024 tokens), or generation.
 - Final verdicts on high-stakes decisions — Laya is a first pass.
 

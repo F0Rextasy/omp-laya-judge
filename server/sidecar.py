@@ -138,23 +138,49 @@ def _wait_for_router():
     return router
 
 
+def _split_arithmetic(state, questions):
+    """(questions laya must answer, booleans arithmetic already settled)."""
+    questions = questions or {}
+    resolved = core.resolve_arithmetic(state, questions)
+    if not resolved:
+        return questions, resolved
+    return {qid: qdef for qid, qdef in questions.items() if qid not in resolved}, resolved
+
+
+def _merge_arithmetic(raw, resolved):
+    """Fold exact answers into a raw laya payload the mappers already own."""
+    if not resolved:
+        return raw
+    if not isinstance(raw, dict):
+        raw = {"answers": {}}
+    raw.setdefault("answers", {}).update(core.arithmetic_answer_dicts(resolved))
+    return raw
+
+
+def _empty_payload():
+    """Provenance for a request no model call was needed for."""
+    resident = _resident() or ["auto"]
+    return {"answers": {}, "routing": {"model": resident[0]}}
+
+
 def predict(state, questions):
     t0 = time.time()
     active_router = _wait_for_router()
-    laya_questions, _kinds = core.to_laya_questions(questions or {})
     if len(questions or {}) > MAX_QUESTIONS:
         raise RequestTooLarge(
             "laya serves at most %d questions per call (got %d)"
             % (MAX_QUESTIONS, len(questions or {}))
         )
+    rest, resolved = _split_arithmetic(state, questions)
+    laya_questions, _kinds = core.to_laya_questions(rest)
     raw = core.predict_locked(
         active_router, core.coerce_state(state), laya_questions,
         model=os.environ.get("LAYA_MODEL") or None,
-    )
-    print("judge: %d question(s) %s" % (
-        len(laya_questions), [question.get("type") for question in laya_questions.values()]
-    ), flush=True)
-    return core.raw_result(raw, round((time.time() - t0) * 1000))
+    ) if laya_questions else _empty_payload()
+    print("judge: %d question(s) %s%s" % (
+        len(laya_questions), [question.get("type") for question in laya_questions.values()],
+        ", %d answered by arithmetic" % len(resolved) if resolved else ""), flush=True)
+    return core.raw_result(_merge_arithmetic(raw, resolved), round((time.time() - t0) * 1000))
 
 
 def predict_batch(items):
@@ -229,16 +255,20 @@ def systemone(state, questions):
             model = part["model"]
         print("systemone: %d question(s) in %d chunk(s)" % (
             len(questions), -(-len(items) // MAX_QUESTIONS)), flush=True)
+        merged = {"model": model or "laya", "answers": answers, "usage": usage}
         _record_decision(merged, round((time.time() - t0) * 1000))
         return merged
-    laya_questions, kinds = core.to_laya_questions(questions)
+    rest, resolved = _split_arithmetic(state, questions)
+    laya_questions, _rest_kinds = core.to_laya_questions(rest)
+    _all_questions, kinds = core.to_laya_questions(questions)
     raw = core.predict_locked(
         active_router, core.coerce_state(state), laya_questions,
         model=os.environ.get("LAYA_MODEL") or None,
-    )
-    print("systemone: %d question(s) %s" % (
-        len(laya_questions), [question.get("type") for question in laya_questions.values()]
-    ), flush=True)
+    ) if rest else _empty_payload()
+    print("systemone: %d question(s) %s%s" % (
+        len(laya_questions), [question.get("type") for question in laya_questions.values()],
+        ", %d answered by arithmetic" % len(resolved) if resolved else ""), flush=True)
+    raw = _merge_arithmetic(raw, resolved)
     result = core.systemone_result(raw, kinds, round((time.time() - t0) * 1000))
     _record_decision(result, round((time.time() - t0) * 1000))
     return result
