@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import time
@@ -190,6 +191,39 @@ class TestRunBatch(unittest.TestCase):
     def test_empty_items(self):
         for router in (FakeRouter(), FakeBatchRouter()):
             self.assertEqual(core.run_batch(router, [], None), [])
+
+
+class TestNormalizeBatch(unittest.TestCase):
+    QUESTIONS = {"q": {"type": "bool", "instructions": "is it billing?"}}
+
+    def test_list_and_single_object(self):
+        items = core.normalize_batch([{"state": {"text": "a"}, "questions": self.QUESTIONS}])
+        self.assertEqual(len(items), 1)
+        self.assertEqual(len(core.normalize_batch({"state": {"text": "a"}, "questions": self.QUESTIONS})), 1)
+
+    def test_states_shape_expands(self):
+        # A live probe hit this: the {states, questions} object was swallowed
+        # as one item with an empty state, so every question was answered
+        # against nothing and the call still reported success.
+        items = core.normalize_batch({"states": [{"text": "a"}, {"text": "b"}], "questions": self.QUESTIONS})
+        self.assertEqual([item["state"] for item in items], [{"text": "a"}, {"text": "b"}])
+        self.assertTrue(all(item["questions"] == self.QUESTIONS for item in items))
+
+    def test_json_string_payload_and_nested_questions(self):
+        items = core.normalize_batch(json.dumps([{"state": {"text": "a"}, "questions": json.dumps(self.QUESTIONS)}]))
+        self.assertEqual(items[0]["questions"], self.QUESTIONS)
+
+    def test_empty_state_is_an_error_not_a_confident_answer(self):
+        for payload in ([{"state": "", "questions": self.QUESTIONS}],
+                        [{"questions": self.QUESTIONS}],
+                        {"states": [{"text": "a"}]}):
+            with self.subTest(payload=payload):
+                with self.assertRaises(ValueError):
+                    core.normalize_batch(payload)
+
+    def test_empty_batch_is_an_error(self):
+        with self.assertRaises(ValueError):
+            core.normalize_batch([])
 
 
 class TestPredictLock(unittest.TestCase):

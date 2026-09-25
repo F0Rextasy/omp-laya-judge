@@ -12,6 +12,7 @@ import time
 import urllib.error
 import urllib.request
 import urllib.parse
+
 import core
 from mcp.server.fastmcp import FastMCP
 
@@ -194,14 +195,15 @@ def judge(state: str, questions: str) -> str:
 
 @mcp.tool()
 def judge_batch(queries: str) -> str:
-    """Judge many states in one call and return {results, count, latency_ms}."""
+    """Judge many states in one call and return {results, count, latency_ms}.
+
+    `queries` is a JSON list of {state, questions}, or a single such object.
+    A {states: [...], questions: {...}} object is accepted too and means "these
+    questions against each of these states". Anything else is an error: a
+    batch that silently judges empty state answers a question nobody asked.
+    """
     try:
-        items = json.loads(queries) if isinstance(queries, str) else queries
-        if isinstance(items, dict):
-            items = [items]
-        for item in items:
-            if isinstance(item.get("questions"), str):
-                item["questions"] = json.loads(item["questions"])
+        items = core.normalize_batch(queries)
     except Exception as exc:
         return json.dumps(_error("invalid batch queries: %s" % exc))
     response, error = _post_with_recovery("/judge", items, JUDGE_TIMEOUT)

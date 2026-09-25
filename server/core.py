@@ -328,3 +328,42 @@ def batch_requests(states_questions: List[Dict[str, Any]], model: Optional[str])
         requests.append({"state": coerce_state(item.get("state", "")), "questions": laya_q, "model": model})
         all_kinds.append(kinds)
     return requests, all_kinds
+
+
+def normalize_batch(payload: Any) -> List[Dict[str, Any]]:
+    """A judge_batch payload -> the item list `run_batch` expects.
+
+    Accepts a list of {state, questions}, a single such object, or
+    {states: [...], questions: {...}} meaning "these questions against each
+    of these states" - a shape callers reach for naturally and which used to
+    be swallowed as one item with an empty state, answering every question
+    against nothing while reporting success. An empty state is now an error
+    rather than a confident wrong answer.
+    """
+    items = payload
+    if isinstance(items, (str, bytes)):
+        items = json.loads(items)
+    if isinstance(items, dict):
+        states = items.get("states")
+        if isinstance(states, list):
+            shared = items.get("questions") or {}
+            if not shared:
+                raise ValueError("states given without questions")
+            items = [{"state": state, "questions": shared} for state in states]
+        else:
+            items = [items]
+    if not isinstance(items, list) or not items:
+        raise ValueError("batch queries must be a non-empty list")
+    normalized: List[Dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            raise ValueError("every batch item must be an object")
+        questions = item.get("questions")
+        if isinstance(questions, (str, bytes)):
+            questions = json.loads(questions)
+        if not str(item.get("state", "")).strip():
+            raise ValueError("every batch item needs a non-empty state")
+        if not questions:
+            raise ValueError("every batch item needs questions")
+        normalized.append({**item, "questions": questions})
+    return normalized
