@@ -16,6 +16,16 @@
   `other` (the pattern was end-anchored while its sibling `route:` was not), a
   12-character label ran into its own bar, and a pick whose text already opens
   with its kind (`notes=CHANGELOG.md`) printed that word twice.
+- The advisory note threshold moved from 0.6 to 0.8 on both gates, measured
+  rather than guessed. A/B in throwaway sandboxes, same model and prompt,
+  plugin enabled vs disabled: on three safe build tasks (HTML page, CSV
+  report, A/B stats table) **no gate fired at all** - the layer cost 0 tokens
+  and 0.6-1.4s per decision and changed nothing. On a destructive-looking
+  cleanup task the 0.6-0.8 band fired two notes, the model did the work
+  anyway, and the run took 54% longer. The hard block stays at 0.85 and every
+  verdict still lands on the card. **Measured contribution is safety, not
+  speed**: what the layer buys is a second opinion on risky commands, at
+  0.6-1.4s and zero tokens.
 - Arithmetic questions no longer reach the model. `core.resolve_arithmetic`
   settles parity, primality, divisibility and threshold comparisons exactly,
   and only claims a question when the state carries a single distinct number
