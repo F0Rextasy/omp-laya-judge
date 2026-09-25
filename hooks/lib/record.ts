@@ -61,7 +61,7 @@ const DECISION_KINDS: Record<string, RegExp> = {
 	route: /^route:/,
 	model: /^(model|route_model)$/,
 	step: /^(step|next|focus|recovery|completion|stopped)(:|$)/,
-	tool: /^(pick|tool|q\d+|candidate|act|risk)(:|$)/,
+	tool: /^(pick|tool|q\d+|candidate|act|risk)(:|$)|^risky_change$/,
 	notes: /^(notes?|note_\d+)$/,
 	compact: /^(compact|compaction|keep_)/,
 };
