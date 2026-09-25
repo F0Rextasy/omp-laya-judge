@@ -10,6 +10,10 @@ const JUDGE_TIMEOUT_MS = 1_500;
 const HEALTH_TIMEOUT_MS = 500;
 const RE_SPAWN_INTERVAL_MS = 60_000;
 const AUTO_ACCEPT = 0.6;
+// A model nudge is only worth the extra turn it causes when laya is fairly
+// sure. Measured over a two-run A/B, notes in the 0.6-0.8 band cost the model
+// turns and changed no outcome; the hard block at 0.85 is kept either way.
+const REVIEW_NOTE = 0.8;
 const DANGER_BLOCK = 0.85;
 const SERVER_DIR = path.resolve(import.meta.dir, "../../server");
 
@@ -286,19 +290,20 @@ export default function hook(pi: HookAPI): void {
 				if (answer?.choice !== "sonic" || answerConfidence(answer) < AUTO_ACCEPT) return;
 				return { input: { ...event.input, agent: "sonic" } };
 			}
-			// Universal observer: every file action goes past laya before it runs.
-			// The verdict is always visible (footer) and reaches the model on its
-			// next step (additionalContext). Hard blocks stay reserved for measured
-			// patterns, so this gate advises on everything and enforces almost nothing.
-			if ((event.toolName === "edit" || event.toolName === "write") && !isJudgeTool(event.toolName, event.input)) {
-				const detail = excerpt(JSON.stringify(event.input), 400);
-				if (!detail) return;
-				const payload = await decide(ctx, p => { const probability = p.answers.risky_change?.bool ?? 0; return `act:${event.toolName} ${probability >= DANGER_BLOCK ? "deny" : probability >= AUTO_ACCEPT ? "review" : "ok"} ${probability.toFixed(2)}`; }, `tool: ${event.toolName}\ninput: ${detail}`, { risky_change: { type: "bool", instructions: "this file change is destructive, irreversible, or exposes secrets" } }, p => answerConfidence(p.answers.risky_change));
-				const probability = payload?.answers.risky_change?.bool;
-				if (typeof probability !== "number") return;
-				if (probability >= DANGER_BLOCK) return { block: true, reason: `laya deny (${probability.toFixed(2)}): this ${event.toolName} looks destructive or exposes secrets. Propose a safer alternative before executing.` };
-				if (probability >= AUTO_ACCEPT) return { additionalContext: `laya escalate (${probability.toFixed(2)}): this ${event.toolName} may need a second look — re-check the target before continuing.` };
-			}
+		// Universal observer: every file action goes past laya before it runs.
+		// The verdict always lands on the card (display-only, free). A note is
+		// pushed into the model's context only when laya is confident the change
+		// is risky: the mid-band nudge cost the model extra turns and, measured
+		// over a two-run A/B, changed no outcome.
+		if ((event.toolName === "edit" || event.toolName === "write") && !isJudgeTool(event.toolName, event.input)) {
+			const detail = excerpt(JSON.stringify(event.input), 400);
+			if (!detail) return;
+			const payload = await decide(ctx, p => { const probability = p.answers.risky_change?.bool ?? 0; return `act:${event.toolName} ${probability >= DANGER_BLOCK ? "deny" : probability >= REVIEW_NOTE ? "review" : "ok"} ${probability.toFixed(2)}`; }, `tool: ${event.toolName}\ninput: ${detail}`, { risky_change: { type: "bool", instructions: "this file change is destructive, irreversible, or exposes secrets" } }, p => answerConfidence(p.answers.risky_change));
+			const probability = payload?.answers.risky_change?.bool;
+			if (typeof probability !== "number") return;
+			if (probability >= DANGER_BLOCK) return { block: true, reason: `laya deny (${probability.toFixed(2)}): this ${event.toolName} looks destructive or exposes secrets. Propose a safer alternative before executing.` };
+			if (probability >= REVIEW_NOTE) return { additionalContext: `laya escalate (${probability.toFixed(2)}): this ${event.toolName} may need a second look — re-check the target before continuing.` };
+		}
 		} catch {
 			return;
 		}
