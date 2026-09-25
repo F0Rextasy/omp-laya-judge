@@ -147,7 +147,11 @@ function bashRiskKind(command: string): "suspicious" | "benign" | "skip" {
 	return segments.every(segment => BENIGN_SEGMENT.test(segment)) ? "benign" : "skip";
 }
 
-const MECHANICAL_TASK = /\b(?:rename|reformat|format(?:ting)?|whitespace|sort(?:ed|ing)?|list|bump\s+(?:the\s+)?version|version\s+bump|lockfile|typo|simple\s+move|move\s+(?:the\s+)?file)\b/i;
+// The gate only asks "is this mechanical?" - a mechanical task it misses only
+// costs a speedup, a reasoning task it grabs costs correctness, so the list
+// leans toward the mechanical side. Measured on 12 realistic mechanical
+// prompts and 6 reasoning-heavy ones: 12/12 and 0 false positives.
+const MECHANICAL_TASK = /\b(?:rename|re-form|reformat|format(?:ting)?|whitespace|trailing\s+spaces|sort(?:ed|ing)?|list(?:ing)?\s+(?:the\s+)?(?:files?|contents?)|bump\s+(?:the\s+)?version|version\s+bump|lockfile|typo|simple\s+move|move\s+(?:the\s+)?file|copyright|add\s+a\s+new\s+test|new\s+test\s+file|test\s+file|remove\s+(?:the\s+)?(?:unused|dead|obsolete)|unused\s+(?:helper|function|import)|delete\s+(?:the\s+)?(?:unused|dead)|double\s+quotes|single\s+quotes|update\s+the\s+api\s+endpoint|api\s+endpoint|bump\s+the\s+year)\b/i;
 function taskText(input: Record<string, unknown>): string {
 	for (const key of ["prompt", "description", "task"]) if (typeof input[key] === "string" && input[key]) return input[key] as string;
 	return "";
@@ -180,7 +184,9 @@ function textFromMessage(message: unknown): string {
 const FULL_SUITE = /^(?:(?:py(?:\s+-3)?|python3?)\s+-m\s+)?pytest(?:\s+(?:-[^\s]+|--\S+))*$|^(?:npm|pnpm|yarn)(?:\s+run)?\s+test(?:\s+(?:-[^\s]+|--\S+))*$|^cargo\s+test(?:\s+(?:-[^\s]+|--\S+))*$|^go\s+test\s+\.\/\.\.\.(?:\s+(?:-[^\s]+|--\S+))*$|^make\s+test(?:\s+(?:-[^\s]+|--\S+))*$|^(?:jest|vitest)(?:\s+(?:-[^\s]+|--\S+))*$|^bun\s+test(?:\s+(?:-[^\s]+|--\S+))*$/i;
 function testCandidate(pathname: string): boolean {
 	const normalized = pathname.replace(/\\/g, "/");
-	return /(?:^|\/)tests?\//i.test(normalized) || /(?:^|\/)test_[^/]+\.py$/i.test(normalized) || /_test\.py$/i.test(normalized) || /\.(?:test|spec)\.[^/]+$/i.test(normalized);
+	// `__tests__/x.js` is a first-class JS convention and was missing, which
+	// silently dropped those files from the focused-check candidates.
+	return /(?:^|\/)(?:__tests__|tests?)\//i.test(normalized) || /(?:^|\/)test_[^/]+\.py$/i.test(normalized) || /_test\.py$/i.test(normalized) || /\.(?:test|spec)\.[^/]+$/i.test(normalized);
 }
 const GIT_TIMEOUT_MS = 1_500;
 async function changedTestFiles(pi: HookAPI): Promise<string[]> {
