@@ -1,10 +1,9 @@
-"""Concurrency: parallel judgments against the shared router.
+"""Concurrency: parallel judgments against the sidecar's shared router.
 
-laya 0.3.20 made model lifecycle thread-safe upstream (#100); this pins the
-plugin side: N threads judging at once must all answer, none deadlocking
-the FastMCP/worker-thread path. Skipped unless LAYA_SLOW_TESTS=1.
+Laya 0.3.20 made model lifecycle thread-safe upstream; this pins the plugin
+side: N threads judging at once must all answer without deadlocking. Skipped
+unless LAYA_SLOW_TESTS=1.
 """
-import json
 import os
 import sys
 import unittest
@@ -22,15 +21,21 @@ class TestConcurrency(unittest.TestCase):
     def setUpClass(cls):
         if SERVER not in sys.path:
             sys.path.insert(0, SERVER)
-        import server
-        cls.server = server
+        import core
+        from tests.support import post_json, start_real_sidecar
+        cls.core = core
+        cls.post_json = staticmethod(post_json)
+        cls.url, _sidecar = start_real_sidecar()
 
     def _one(self, i):
-        out = json.loads(self.server.judge(
-            json.dumps({"text": f"ticket {i}: charged twice, refund the duplicate"}),
-            json.dumps({"dept": {"type": "choice", "instructions": "Which department?",
-                                 "criteria": {"billing": "invoices, payments, refunds",
-                                              "support": "technical help, bugs"}}})))
+        questions = {"dept": {
+            "type": "choice", "instructions": "Which department?",
+            "criteria": {"billing": "invoices, payments, refunds",
+                         "support": "technical help, bugs"}}}
+        state = {"text": "ticket %d: charged twice, refund the duplicate" % i}
+        raw = self.post_json(self.url, {"state": state, "questions": questions})
+        _converted, kinds = self.core.to_laya_questions(questions)
+        out = self.core.judge_result(raw, kinds, raw["latency_ms"])
         return out["answers"]["dept"]["choice"], out["model"]
 
     def test_parallel_judgments_all_answer(self):
@@ -42,14 +47,14 @@ class TestConcurrency(unittest.TestCase):
             self.assertTrue(model.startswith("laya/"))
 
     def test_parallel_batches(self):
-        items = [{"state": {"text": f"mail {i} about a duplicate charge"},
-                  "questions": {"dept": {"type": "choice", "instructions": "dept?",
-                                         "criteria": {"billing": "money",
-                                                      "support": "bugs"}}}}
+        items = [{"state": {"text": "mail %d about a duplicate charge" % i},
+                  "questions": {"dept": {
+                      "type": "choice", "instructions": "dept?",
+                      "criteria": {"billing": "money", "support": "bugs"}}}}
                  for i in range(6)]
 
         def run(_):
-            return json.loads(self.server.judge_batch(json.dumps(items)))
+            return self.post_json(self.url, items)
 
         with ThreadPoolExecutor(max_workers=3) as pool:
             outputs = list(pool.map(run, range(3)))

@@ -144,6 +144,46 @@ def raw_result(raw: Any, latency_ms: int) -> Dict[str, Any]:
     }
 
 
+def systemone_result(raw: Any, kinds: Dict[str, str], latency_ms: int) -> Dict[str, Any]:
+    """System One (`POST /v1/systemone`) envelope for oh-my-pi's judge role.
+
+    pi-ai's TypeSafeJudge rejects the whole response unless every answer
+    carries a `type` equal to the type that was asked for, so each answer is
+    rebuilt from the requested kind instead of passing laya's dicts through.
+    This wire shape is what laya speaks natively, and that is what makes it a
+    System One backend rather than another chat model in the chain.
+    """
+    raw_answers = raw.get("answers", {}) if isinstance(raw, dict) else {}
+    answers: Dict[str, Any] = {}
+    for qid, kind in kinds.items():
+        res = raw_answers.get(qid) or {}
+        if kind in ("bool", "noul"):
+            answers[qid] = {"type": "noul", "noul": float(res.get("noul", 0.0))}
+        elif kind == "score":
+            answers[qid] = {
+                "type": "score",
+                "score": float(res.get("score", 0.0)),
+                "probabilities": res.get("probabilities", {}),
+                "confidence": float(res.get("confidence", 0.0)),
+            }
+        else:
+            answers[qid] = {
+                "type": "choice",
+                "choice": res.get("choice"),
+                "probabilities": res.get("probabilities", {}),
+                "confidence": float(res.get("confidence", 0.0)),
+            }
+    usage = raw.get("usage", {}) if isinstance(raw, dict) else {}
+    return {
+        "model": _model_of(raw),
+        "answers": answers,
+        "usage": {
+            "input_tokens": int(usage.get("input_tokens", 0) or 0),
+            "output_tokens": int(usage.get("output_tokens", 0) or 0),
+        },
+    }
+
+
 def run_batch(router: Any, items: List[Dict[str, Any]], model: Optional[str]) -> List[Dict[str, Any]]:
     """Judge a list of {state, questions} items and return judge() payloads.
 

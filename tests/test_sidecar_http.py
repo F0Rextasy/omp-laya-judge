@@ -1,14 +1,17 @@
-"""HTTP sidecar contract: real server, real sockets.
+"""HTTP sidecar contract: real server, real sockets and lifecycle.
 
 Some machines drop new 127.0.0.1 connections (strict AV/WFP loopback
-policies — observed while developing this suite), so the class probes
-loopback first and falls back to a local interface address.
+policies — observed while developing this suite), so the handler contract
+class probes loopback first and falls back to a local interface address.
 """
+import contextlib
+import io
 import json
 import os
 import socket
 import sys
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
@@ -35,7 +38,7 @@ class SidecarHTTPTest(unittest.TestCase):
     def setUpClass(cls):
         os.environ.pop("LAYA_MODEL", None)
         cls.host = _test_host()
-        sidecar.router = FakeBatchRouter()  # light: no torch/laya import
+        sidecar.router = FakeBatchRouter()
         cls.httpd = ThreadingHTTPServer((cls.host, 0), sidecar.Handler)
         cls.port = cls.httpd.server_address[1]
         cls.thread = threading.Thread(target=cls.httpd.serve_forever, daemon=True)
@@ -50,11 +53,12 @@ class SidecarHTTPTest(unittest.TestCase):
     def _request(self, path, data=None):
         url = f"http://{self.host}:{self.port}{path}"
         body = None if data is None else json.dumps(data).encode()
-        req = urllib.request.Request(url, data=body, method="GET" if body is None else "POST",
-                                     headers={"Content-Type": "application/json"})
+        request = urllib.request.Request(
+            url, data=body, method="GET" if body is None else "POST",
+            headers={"Content-Type": "application/json"})
         try:
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                return resp.status, json.loads(resp.read())
+            with urllib.request.urlopen(request, timeout=10) as response:
+                return response.status, json.loads(response.read())
         except urllib.error.HTTPError as exc:
             return exc.code, json.loads(exc.read())
 
@@ -64,8 +68,8 @@ class SidecarHTTPTest(unittest.TestCase):
             "questions": {"even": {"type": "bool", "instructions": "Is it even?"}},
         })
         self.assertEqual(status, 200)
-        self.assertEqual(out["answers"]["even"]["noul"], 0.75)  # verbatim laya shape
-        self.assertEqual(out["model"], "laya/english")          # routing provenance
+        self.assertEqual(out["answers"]["even"]["noul"], 0.75)
+        self.assertEqual(out["model"], "laya/english")
         self.assertIn("routing", out)
         self.assertIn("usage", out)
         self.assertIsInstance(out["latency_ms"], int)
@@ -79,15 +83,40 @@ class SidecarHTTPTest(unittest.TestCase):
         self.assertEqual(out["count"], 2)
         self.assertEqual(len(out["results"]), 2)
         self.assertIn("latency_ms", out)
-        self.assertEqual(sidecar.router.batch_calls, 1)  # one batched forward pass
+        self.assertEqual(sidecar.router.batch_calls, 1)
 
     def test_info_shape(self):
         status, out = self._request("/info")
         self.assertEqual(status, 200)
-        self.assertEqual(out["model"], "laya/auto")  # no pin
+        self.assertEqual(out["model"], "laya/auto")
         self.assertTrue(out["loaded"])
         self.assertIn("bool", out["types"])
+        self.assertIsInstance(out["resident"], list)
         self.assertIn("startup_error", out)
+
+    def test_load_failure_reports_and_keeps_serving(self):
+        original_router = sidecar.router
+        original_error = sidecar.startup_error
+        event_was_set = sidecar._load_complete.is_set()
+        sidecar.router = None
+        sidecar.startup_error = "load failed"
+        sidecar._load_complete.set()
+        try:
+            status, error = self._request("/judge", {
+                "state": "anything", "questions": {},
+            })
+            self.assertEqual(status, 500)
+            self.assertEqual(error["startup_error"], "load failed")
+            info_status, info = self._request("/info")
+            self.assertEqual(info_status, 200)
+            self.assertEqual(info["startup_error"], "load failed")
+        finally:
+            sidecar.router = original_router
+            sidecar.startup_error = original_error
+            if event_was_set:
+                sidecar._load_complete.set()
+            else:
+                sidecar._load_complete.clear()
 
     def test_unknown_path_404(self):
         status, _ = self._request("/nope", {"x": 1})
@@ -95,17 +124,66 @@ class SidecarHTTPTest(unittest.TestCase):
 
     def test_malformed_json_stays_up(self):
         url = f"http://{self.host}:{self.port}/judge"
-        req = urllib.request.Request(url, data=b"{not json", method="POST",
-                                     headers={"Content-Type": "application/json"})
+        request = urllib.request.Request(
+            url, data=b"{not json", method="POST",
+            headers={"Content-Type": "application/json"})
         try:
-            with urllib.request.urlopen(req, timeout=10):
+            with urllib.request.urlopen(request, timeout=10):
                 self.fail("expected HTTP 500")
         except urllib.error.HTTPError as exc:
             self.assertEqual(exc.code, 500)
-            self.assertIn("error", json.loads(exc.read()))
-        # server still answers after the failure
+            error = json.loads(exc.read())
+            self.assertIn("error", error)
+            self.assertIn("detail", error)
+            self.assertIn("startup_error", error)
         status, _ = self._request("/info")
         self.assertEqual(status, 200)
+
+
+class SidecarLifecycleTest(unittest.TestCase):
+    def test_bind_conflict_probes_running_info(self):
+        existing = ThreadingHTTPServer(("127.0.0.1", 0), sidecar.Handler)
+        thread = threading.Thread(target=existing.serve_forever, daemon=True)
+        thread.start()
+        try:
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                self.assertIsNone(sidecar._bind(existing.server_address[1]))
+            self.assertIn("already running", output.getvalue())
+        finally:
+            existing.shutdown()
+            existing.server_close()
+            thread.join(timeout=2)
+
+    def test_bind_conflict_without_info_is_clear_error(self):
+        listener = socket.socket()
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        try:
+            with self.assertRaisesRegex(RuntimeError, "no valid sidecar answered"):
+                sidecar._bind(listener.getsockname()[1])
+        finally:
+            listener.close()
+
+    def test_idle_exit_and_request_touch(self):
+        httpd = sidecar.SidecarHTTPServer(("127.0.0.1", 0), sidecar.Handler)
+        httpd.idle_seconds = 1.0
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        url = "http://127.0.0.1:%d/info" % httpd.server_address[1]
+        try:
+            time.sleep(0.6)
+            with urllib.request.urlopen(url, timeout=1):
+                pass
+            time.sleep(0.6)
+            with urllib.request.urlopen(url, timeout=1):
+                pass
+            time.sleep(0.2)
+            self.assertTrue(thread.is_alive(), "request did not reset idle timer")
+            thread.join(timeout=3)
+            self.assertFalse(thread.is_alive(), "idle sidecar did not exit")
+        finally:
+            httpd.server_close()
 
 
 if __name__ == "__main__":

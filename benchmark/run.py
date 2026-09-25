@@ -60,22 +60,28 @@ CASES = [
 
 def main() -> None:
     t_start = time.time()
-    import server as srv
+    import core
+    import sidecar
+    sidecar.get_router()  # the sidecar module is the sole model owner
     import_s = round(time.time() - t_start, 1)
+
+    def judge(state, questions):
+        raw = sidecar.predict(state, questions)
+        _converted, kinds = core.to_laya_questions(questions)
+        return json.dumps(core.judge_result(raw, kinds, raw["latency_ms"]))
 
     # warmup (loads checkpoint, excluded from timing)
     t0 = time.time()
-    srv.judge(json.dumps({"text": "warmup"}), json.dumps(
-        {"q": {"type": "choice", "instructions": "Pick one.",
-               "criteria": {"a": "first", "b": "second"}}}))
+    judge({"text": "warmup"}, {
+        "q": {"type": "choice", "instructions": "Pick one.",
+              "criteria": {"a": "first", "b": "second"}}})
     warmup_s = round(time.time() - t0, 1)
 
     rows = []
     correct = 0
     for state, questions, (qid, expected) in CASES:
-        t0 = time.time()
-        out = json.loads(srv.judge(json.dumps(state), json.dumps(questions)))
-        ms = round((time.time() - t0) * 1000)
+        out = json.loads(judge(state, questions))
+        ms = out["latency_ms"]
         ans = out["answers"][qid]
         if "choice" in ans:
             got, ok = ans["choice"], ans["choice"] == expected
@@ -94,8 +100,8 @@ def main() -> None:
     ms_values = [r["ms"] for r in rows]
     p50 = round(statistics.median(ms_values))
     p95 = round(sorted(ms_values)[min(len(ms_values) - 1, math.ceil(0.95 * len(ms_values)) - 1)])
-    import laya
-    import torch
+    laya = sys.modules.get("laya")
+    torch = sys.modules.get("torch")
     result = {
         "schema": 2,
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

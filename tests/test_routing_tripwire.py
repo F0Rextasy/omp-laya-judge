@@ -26,14 +26,17 @@ class TripwireBase(unittest.TestCase):
     def setUpClass(cls):
         if SERVER not in sys.path:
             sys.path.insert(0, SERVER)
-        os.environ.pop("LAYA_MODEL", None)
-        import server
-        cls.server = server
+        import core
+        from tests.support import post_json, start_real_sidecar
+        cls.core = core
+        cls.post_json = staticmethod(post_json)
+        cls.url, _sidecar = start_real_sidecar()
 
     @classmethod
     def judge(cls, state, questions):
-        return json.loads(cls.server.judge(json.dumps(state, ensure_ascii=False),
-                                           json.dumps(questions, ensure_ascii=False)))
+        raw = cls.post_json(cls.url, {"state": state, "questions": questions})
+        _converted, kinds = cls.core.to_laya_questions(questions)
+        return cls.core.judge_result(raw, kinds, raw["latency_ms"])
 
 
 class TestNonLatinRouting(TripwireBase):

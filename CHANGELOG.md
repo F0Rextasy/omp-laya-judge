@@ -2,19 +2,84 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Model ownership moved out of the stdio MCP process. `server/sidecar.py`
+  now binds before loading the single resident router, serves status while it
+  loads, and exits after an idle window; `server/bridge.py` keeps the three
+  MCP tools as a model-free HTTP forwarder and starts the sidecar on demand.
+- Decision cards read as one layer now: harness-side judgments (the `act:`,
+  `recovery:`, `notes` gates) carry their distributions, so a bool verdict
+  draws a gauge instead of a bare text row, and the row builder is shared
+  between the before-generation and turn-end cards. Three rendering defects
+  measured against live cards are fixed: a `recovery:` pick classified as
+  `other` (the pattern was end-anchored while its sibling `route:` was not), a
+  12-character label ran into its own bar, and a pick whose text already opens
+  with its kind (`notes=CHANGELOG.md`) printed that word twice.
+
 ### Fixed
 
-- `server.py` startup: hub revision round-trip removed by default —
-  `HF_HUB_OFFLINE=1` cache-first (a local judge must answer with no network
-  once checkpoints are cached; `HF_HUB_OFFLINE=0` bootstraps a fresh install)
-  and `set_num_interop_threads` made idempotent so a failed eager start no
-  longer poisons every retry — the retry died with "...after parallel work
-  has started", masking the real network error as an interop crash.
+- Sidecar startup is cache-first by default: `HF_HUB_OFFLINE=1` keeps local
+  operation independent of the hub (set `HF_HUB_OFFLINE=0` only to bootstrap
+  a fresh install). The HTTP server binds before model loading, so status stays
+  available and a load failure is reported without taking the sidecar down.
 - `judge_batch`: nested `state`/`questions` accepted as JSON strings, mirroring
   `judge()`'s inputs (`'str' object has no attribute 'items'` before — the
   contract test only ever sent dicts).
+- An oversized judgment request no longer monopolizes the model lock: over
+  `LAYA_MAX_TOTAL_QUESTIONS` (default 256) the sidecar answers 422, which the
+  client treats as non-transient so the role chain moves on. A timeout would
+  have thrown instead, taking the whole judgment with it.
+- Client disconnects (judgment timeout, aborted turn) no longer dump a
+  `ConnectionResetError` traceback per request.
+- The sidecar's idle window is 1 hour, not 10 minutes. Reloading the
+  checkpoints costs ~20s and that cost lands entirely on the next turn's
+  first judgment, which made the 10-minute default a routine stall. It still
+  exits eventually, so an abandoned sidecar does not leak its RAM; set
+  `LAYA_SIDECAR_IDLE` in seconds, or `0` to disable the idle exit.
+- The risk gate speaks the typed escalation contract: `deny` stops the action
+  with a reason, `escalate` hands an uncertain judgement back to the model,
+  `allow` stays silent and lets the normal permission flow decide — the layer
+  can only ever tighten. A 3-level `rate` framing was measured and **rejected**
+  before adopting it: it flattened the signal (bad 0.43 vs routine 0.45, and
+  safe commands rose 0.21 -> 0.36), so the bool head stays.
 
 ### Added
+
+
+- **laya is now a native System One backend for oh-my-pi.** The sidecar
+  serves `POST /v1/systemone` and `GET /v1/models`, which is the wire the
+  harness's `judge` role chain speaks for native backends (the same slot
+  TypeSafe `jev` and OpenRouter Decisions occupy). With `TYPESAFE_BASE_URL`
+  pointed at the sidecar and `modelRoles.judge: typesafe/jev-latest`, the
+  harness routes its own judgments to laya — the main model never calls a
+  judge tool. Verified live: oh-my-pi's `find` cascade sent a 58-question
+  `systemone` request directly to the sidecar.
+- Every file action now goes past laya before it runs, not just suspicious
+  shell commands. The verdict is always visible in the footer and reaches
+  the model on its next step; hard blocks stay reserved for measured
+  patterns. Verified live: emptying a scratch file drew `act:edit review
+  0.82` plus an `escalate` advisory in the transcript, and the model
+  completed the edit.
+- System One requests are chunked at 8 questions and merged. Measured on CPU:
+  8 questions ≤810ms, 58 questions 8.6s — inside the harness's 10s judgment
+  budget, where a single 58-question pass overran it and wedged the model
+  lock for every later caller.
+- System One decisions are now visible in the chat. The sidecar keeps a
+  ring-buffer log (`GET /v1/decisions?since=N`) and the turn-end card pulls
+  what the harness chose, so the picks laya makes for oh-my-pi itself read
+  the same way MCP calls already did: `⚡ laya ▸ 2 decisions this turn —
+  level=xhigh · stopped=0.23 · avg 254ms`. Without it the native judge role
+  was silent: the harness calls laya directly, so nothing reached the
+  transcript.
+- Decision cards now draw what the model chose *among*: the sidecar logs the
+  full answer distribution and the cards render ten-cell probability bars
+  with the winner marked (`xhigh ███████░░░ 0.66 ◀`). Applies to harness
+  decisions, MCP judge calls, and `/laya-decisions` alike.
+- Banner and `/laya` verdict are English (`● laya active`); decision kinds
+  cover the hook prefixes (`act:`, `notes`, `risk:`, `route:`, `focus:`)
+  instead of falling to `other`.
+
 
 - `hooks/pre/laya-live.ts`: live decision feed — footer status line per laya
   call (`⚡ laya ▸ billing 0.74 · english · 185ms`, ⚠ when confidence < 0.6,
@@ -26,6 +91,42 @@
   canonicalizes to the same match. Payloads carrying a stray second content
   part (quoted fragment + markdown fence) parse via balanced JSON extraction
   instead of failing the whole result.
+
+- `hooks/pre/laya-decide.ts`: harness-side decision layer. The plugin no
+  longer waits to be called — hooks ask the local sidecar directly at eight
+  decision points (destructive-command caution, task routing, tool-error
+  recovery, completion check, compaction guidance, note selection, focused
+  checks, sidecar health). Every gate is fail-open: a timeout, dead sidecar,
+  or malformed reply means no decision, never a block. `hooks/lib/record.ts`
+  holds the decision queue so MCP results and internal decisions share the
+  one turn-end card.
+
+### Fixed
+
+- Hook gates read `.bool` from sidecar replies, but the sidecar serves laya's
+  raw heads — the yes/no head arrives as `noul` (which is P(true), per
+  `core.unpack_judge_answer`). Without normalizing it every bool gate read
+  `undefined` and failed open, so the layer was silent on every command
+  including `rm -rf /`.
+- `ensureSidecar` discarded its health probe and spawned a sidecar on every
+  check; it now returns early when `/info` answers.
+- The focused-checks gate derived candidates from `git diff HEAD`, which
+  misses the newly written (untracked) test files it most often needs;
+  it reads `git status --porcelain` now.
+- `cargo`/`go`/`make` were in the full-suite list but not the benign
+  prefilter, so their branch was unreachable.
+- The focused-checks reason no longer fabricates file-append commands for
+  runners that reject them (`go test ./... <file>`); it names the file instead.
+
+### Measured
+
+- Gate calibration against the shipped checkpoint is published in the README.
+  Short version: the destructive-command gate separates real signal
+  (dangerous 0.43–0.78 vs read commands 0.12–0.34) but cannot rank deletions
+  (`rm -rf build` 0.68 vs `rm -rf /` 0.75), so the block bar stays at 0.85 and
+  the live behaviour is a caution. Routing, recovery, completion, and
+  focused-check choices score 0.01–0.30 — below the 0.6 gate, so they are wired
+  but do not act on this checkpoint.
 
 ## [0.3.0] - 2026-09-24
 

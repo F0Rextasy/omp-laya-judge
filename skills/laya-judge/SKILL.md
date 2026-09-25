@@ -21,6 +21,18 @@ before spending LLM calls.
 - Nuanced reasoning, long context (>512-1024 tokens), or generation.
 - Final verdicts on high-stakes decisions — Laya is a first pass.
 
+## Harness-side gates (no call needed)
+
+The plugin also decides on its own. `hooks/pre/laya-decide.ts` consults the
+same local sidecar before some tool calls and at session boundaries, so a
+decision can arrive as a `blocked` tool result, a risk caution, an appended
+recovery hint, or an injected note list. You do not have to request these.
+
+They are fail-open and measured: on the shipped checkpoint only the
+destructive-command caution acts, and it warns rather than blocks. Treat a
+`laya ▸` line as a cheap local opinion to weigh, not as a verified fact — the
+README publishes the per-gate numbers.
+
 ## Calling
 
 `judge(state, questions)` — state is text or a JSON document; questions map
