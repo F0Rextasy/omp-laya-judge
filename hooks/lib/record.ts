@@ -124,11 +124,29 @@ export function decisionHead(kind: string, core: string, ms: number): string {
 	return `   ${lead.slice(0, 66).padEnd(66)}${formatMs(ms).padStart(7)}`;
 }
 
-/** Card rows for a queue: every head, distribution bars for the first `withBars`. */
+/**
+ * Card rows for a queue: every head, distribution bars for the first `withBars`.
+ *
+ * Identical decisions collapse into one row with a count and their summed
+ * time. A turn of fourteen file edits is one decision, not fourteen lines of
+ * `act:edit ok 0.20` - the repetition was what made the feed read as noise.
+ */
 export function decisionRows(entries: DecisionRecord[], withBars = 2): string[] {
-	return entries.flatMap((entry, index) => {
-		const head = decisionHead(kindOfDecision(entry.core.split(/[ =]/)[0] ?? ""), entry.core, entry.ms);
-		return index < withBars && entry.bars !== undefined && entry.bars.length > 0 ? [head, ...renderBars(entry.bars.slice(0, 4))] : [head];
+	const groups = new Map<string, { entry: DecisionRecord; count: number; ms: number }>();
+	for (const entry of entries) {
+		const key = `${kindOfDecision(entry.core.split(/[ =]/)[0] ?? "")}|${entry.core}`;
+		const existing = groups.get(key);
+		if (existing) {
+			existing.count += 1;
+			existing.ms += entry.ms;
+		} else {
+			groups.set(key, { entry, count: 1, ms: entry.ms });
+		}
+	}
+	return [...groups.values()].flatMap((group, index) => {
+		const count = group.count > 1 ? ` ×${group.count}` : "";
+		const head = decisionHead(kindOfDecision(group.entry.core.split(/[ =]/)[0] ?? ""), group.entry.core + count, group.ms);
+		return index < withBars && group.entry.bars !== undefined && group.entry.bars.length > 0 ? [head, ...renderBars(group.entry.bars.slice(0, 4))] : [head];
 	});
 }
 
