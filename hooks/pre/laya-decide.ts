@@ -260,7 +260,7 @@ export default function hook(pi: HookAPI): void {
 				const command = typeof event.input.command === "string" ? event.input.command : "";
 				const risk = bashRiskKind(command);
 				if (risk === "suspicious") {
-					const payload = await decide(ctx, p => { const probability = p.answers.is_this_dangerous?.bool ?? 0; return `risk:${probability >= DANGER_BLOCK ? "deny" : probability >= AUTO_ACCEPT ? "escalate" : "allow"} ${probability.toFixed(2)}`; }, command, { is_this_dangerous: { type: "bool", instructions: "this command is destructive, irreversible, or security-sensitive" } }, p => answerConfidence(p.answers.is_this_dangerous));
+					const payload = await decide(ctx, p => { const probability = p.answers.is_this_dangerous?.bool ?? 0; return `risk:${probability >= DANGER_BLOCK ? "deny" : probability >= REVIEW_NOTE ? "escalate" : "allow"} ${probability.toFixed(2)}`; }, command, { is_this_dangerous: { type: "bool", instructions: "this command is destructive, irreversible, or security-sensitive" } }, p => answerConfidence(p.answers.is_this_dangerous));
 					const probability = payload?.answers.is_this_dangerous?.bool;
 					if (typeof probability !== "number") return;
 					// Typed escalation, the way the layer is meant to behave: deny
@@ -268,7 +268,7 @@ export default function hook(pi: HookAPI): void {
 					// model, allow stays silent and lets the normal permission
 					// flow decide. The gate can only ever tighten, never loosen.
 					if (probability >= DANGER_BLOCK) return { block: true, reason: `laya deny (${probability.toFixed(2)}): ${JSON.stringify(command)} is destructive or security-sensitive. Propose a safer alternative before executing.` };
-					if (probability >= AUTO_ACCEPT) return { additionalContext: `laya escalate (${probability.toFixed(2)}): laya is not confident enough to stop ${JSON.stringify(command)}, but flags it as possibly destructive — re-check the intent before continuing.` };
+					if (probability >= REVIEW_NOTE) return { additionalContext: `laya escalate (${probability.toFixed(2)}): laya is not confident enough to stop ${JSON.stringify(command)}, but flags it as possibly destructive — re-check the intent before continuing.` };
 				} else if (risk === "benign" && blockedOnce.size === 0 && FULL_SUITE.test(command.trim())) {
 					const candidates = await changedTestFiles(pi);
 					if (candidates.length === 0) return;
