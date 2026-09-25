@@ -5,7 +5,7 @@
  * The turn-end card remains the single user-facing summary for that queue.
  */
 import type { HookAPI } from "@oh-my-pi/pi-coding-agent/extensibility/hooks";
-import { SIDECAR_URL, barsFromAnswer, decisionRows, formatMs, formatStatus, kindOfDecision, record, resetRecords, takeRecords } from "../lib/record";
+import { SIDECAR_URL, barsFromAnswer, decisionRows, formatMs, formatStatus, kindOfDecision, record, resetRecords, takeRecords, version } from "../lib/record";
 import type { DecisionBar, LoggedAnswer } from "../lib/record";
 
 type Answer = {
@@ -184,7 +184,7 @@ export default function hook(pi: HookAPI): void {
 			customType: "laya-decide",
 			display: true,
 			content: [
-				`⚡ laya ▸ ${pulled.length} decision${pulled.length > 1 ? "s" : ""} before generation · ${formatMs(total)} · 0 tokens`,
+				`⚡ laya ▸ ${pulled.length} decision${pulled.length > 1 ? "s" : ""} before generation · ${formatMs(total)} · 0 tokens · v${version()}`,
 				...rows,
 			].join("\n"),
 		});
@@ -237,7 +237,7 @@ export default function hook(pi: HookAPI): void {
 			customType: "laya-live",
 			display: true,
 			content: [
-				`⚡ laya ▸ ${queued.length} decision${queued.length > 1 ? "s" : ""} · ${formatMs(total)} · 0 tokens`,
+				`⚡ laya ▸ ${queued.length} decision${queued.length > 1 ? "s" : ""} · ${formatMs(total)} · 0 tokens · v${version()}`,
 				...rows,
 				more,
 			].filter(Boolean).join("\n"),

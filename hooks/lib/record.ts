@@ -1,6 +1,33 @@
 export const LAYA_STATUS_KEY = "laya-live";
 export const SIDECAR_URL = "http://127.0.0.1:3777";
 
+import { readFileSync } from "node:fs";
+import * as path from "node:path";
+
+/**
+ * Build stamp from the manifest.
+ *
+ * Hooks load once per omp process, so a window opened before an update keeps
+ * the old code in memory. Printing the version on the session banner *and* on
+ * every card means any card identifies the code that produced it, instead of
+ * the user having to guess which window is current.
+ */
+let cached: string | undefined;
+
+export function version(): string {
+	if (cached !== undefined) return cached;
+	cached = "dev";
+	try {
+		const manifest: unknown = JSON.parse(readFileSync(path.resolve(import.meta.dir, "../../package.json"), "utf-8"));
+		if (manifest && typeof manifest === "object" && "version" in manifest && typeof manifest.version === "string") {
+			cached = manifest.version;
+		}
+	} catch {
+		// A missing or unreadable manifest leaves the dev stamp in place.
+	}
+	return cached;
+}
+
 export interface DecisionRecord {
 	core: string;
 	ms: number;
