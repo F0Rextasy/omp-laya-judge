@@ -218,6 +218,23 @@ function focusedCommand(command: string, candidate: string): string | undefined 
 	return runner ? `${runner[1]} ${candidate}` : undefined;
 }
 
+// Host-side validation of laya's verdict: a block is only allowed when a
+// deterministic signal agrees with the model. Secret-shaped paths and
+// credential-shaped payloads are the cases where a wrong block costs little
+// and a missed write costs a lot; everything else has to earn the block.
+const SECRET_PATH = /(?:^|[\\/])(?:\.env(?:\.[\w-]+)?|id_rsa|id_ed25519|credentials|secrets?(?:\.[\w-]+)?|service[-_.]?account[\w-]*\.json|\.npmrc|\.pypirc|\.netrc)$|(?:\.pem|\.key|\.p12|\.pfx)$/i;
+const SECRET_PAYLOAD = /-----BEGIN [A-Z ]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|sk-[A-Za-z0-9]{20,}/;
+
+function corroboratesRisk(input: Record<string, unknown>): boolean {
+	const path = typeof input.path === "string" ? input.path : "";
+	if (path && SECRET_PATH.test(path)) return true;
+	for (const key of ["content", "new_str", "new_string", "old_str", "text"]) {
+		const value = input[key];
+		if (typeof value === "string" && SECRET_PAYLOAD.test(value)) return true;
+	}
+	return false;
+}
+
 async function noteCandidates(cwd: string): Promise<string[]> {
 	const entries: string[] = [];
 	for (const directory of [cwd, path.join(cwd, "docs")]) {
@@ -308,13 +325,20 @@ export default function hook(pi: HookAPI): void {
 			// is risky: the mid-band nudge cost the model extra turns and, measured
 			// over a two-run A/B, changed no outcome.
 			if ((event.toolName === "edit" || event.toolName === "write") && !isJudgeTool(event.toolName, event.input)) {
-			const detail = excerpt(JSON.stringify(event.input), 400);
-			if (!detail) return;
-			const payload = await decide(ctx, p => { const probability = p.answers.risky_change?.bool ?? 0; return `act:${event.toolName} ${probability >= DANGER_BLOCK ? "deny" : probability >= REVIEW_NOTE ? "review" : "ok"} ${probability.toFixed(2)}`; }, `tool: ${event.toolName}\ninput: ${detail}`, { risky_change: { type: "bool", instructions: "this file change is destructive, irreversible, or exposes secrets" } }, p => answerConfidence(p.answers.risky_change));
-			const probability = payload?.answers.risky_change?.bool;
-			if (typeof probability !== "number") return;
-			if (probability >= DANGER_BLOCK) return { block: true, reason: `laya deny (${probability.toFixed(2)}): this ${event.toolName} looks destructive or exposes secrets. Propose a safer alternative before executing.` };
-			if (probability >= REVIEW_NOTE) return { additionalContext: `laya escalate (${probability.toFixed(2)}): this ${event.toolName} may need a second look — re-check the target before continuing.` };
+				const detail = excerpt(JSON.stringify(event.input), 400);
+				if (!detail) return;
+				const payload = await decide(ctx, p => { const probability = p.answers.risky_change?.bool ?? 0; const verdict = probability >= DANGER_BLOCK && corroboratesRisk(event.input) ? "deny" : probability >= REVIEW_NOTE ? "review" : "ok"; return `act:${event.toolName} ${verdict} ${probability.toFixed(2)}`; }, `tool: ${event.toolName}\ninput: ${detail}`, { risky_change: { type: "bool", instructions: "this file change is destructive, irreversible, or exposes secrets" } }, p => answerConfidence(p.answers.risky_change));
+				const probability = payload?.answers.risky_change?.bool;
+				if (typeof probability !== "number") return;
+			// A block needs the host's agreement, not just the model's: measured
+			// on this very session, the bool head denied two plain source files
+			// at 0.88 and 0.93, and a gate that blocks honest work is worse than
+			// no gate. Uncorroborated verdicts stop at the card - laya picks, this
+			// function is the validation, and a note would only cost a turn.
+			if (corroboratesRisk(event.input)) {
+				if (probability >= DANGER_BLOCK) return { block: true, reason: `laya deny (${probability.toFixed(2)}): this ${event.toolName} looks destructive or exposes secrets. Propose a safer alternative before executing.` };
+				if (probability >= REVIEW_NOTE) return { additionalContext: `laya escalate (${probability.toFixed(2)}): this ${event.toolName} may need a second look — re-check the target before continuing.` };
+			}
 			}
 			} catch {
 			return;
