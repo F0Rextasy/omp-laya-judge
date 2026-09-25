@@ -119,11 +119,22 @@ async function pullHarnessDecisions(): Promise<ParsedDecision[]> {
 }
 
 
+/** One logged pick as text. The ring stores objects (`{pick, probs}`), not
+ * strings, so string-interpolating the value printed `[object Object]`. */
+function pickLabel(value: LoggedAnswer): string {
+	if (typeof value === "string") return value;
+	if ("pick" in value && value.pick) return String(value.pick);
+	if ("choice" in value && value.choice) return String(value.choice);
+	if ("p" in value && typeof value.p === "number") return value.p.toFixed(2);
+	if ("bool" in value && typeof value.bool === "number") return value.bool.toFixed(2);
+	return "?";
+}
+
 /** `/laya-decisions` - the decision stream, the way the layer is meant to be watched. */
 async function showDecisionStream(pi: HookAPI): Promise<void> {
 	try {
 		const response = await fetch(`${SIDECAR_URL}/v1/decisions?since=0`, { signal: AbortSignal.timeout(1000) });
-		const payload = (await response.json()) as { decisions?: { picks?: Record<string, string>; model?: string; ms?: number }[] };
+		const payload = (await response.json()) as { decisions?: { picks?: Record<string, LoggedAnswer>; model?: string; ms?: number }[] };
 		const decisions = payload.decisions ?? [];
 		if (decisions.length === 0) {
 			pi.sendMessage({ customType: "laya-decide", display: true, content: "⚡ laya ▸ no harness decisions recorded yet" });
@@ -143,7 +154,7 @@ async function showDecisionStream(pi: HookAPI): Promise<void> {
 			.map(([kind, count]) => `${kind} ${count}`)
 			.join(" · ");
 		const recent = decisions.slice(-3)
-			.map(decision => Object.entries(decision.picks ?? {}).slice(0, 2).map(([id, value]) => `${id}=${value}`).join(" "))
+			.map(decision => Object.entries(decision.picks ?? {}).slice(0, 2).map(([id, value]) => `${id}=${pickLabel(value)}`).join(" "))
 			.join(" · ");
 		pi.sendMessage({
 			customType: "laya-decide",

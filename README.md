@@ -50,7 +50,11 @@ ambiguous is still laya's.
 
 ## Checkpoint A/B/C + random
 
-(`benchmark/compare.json`, reproduced by `benchmark/compare_models.py`):
+(`benchmark/compare.json`, reproduced by `benchmark/compare_models.py`).
+These are **raw checkpoint scores** — the model answering alone, with no
+arithmetic resolver — which is why the `english` row reads 8 while the
+headline above reads 10: the two extra cases are parity, answered exactly by
+`server/core.py` rather than by the checkpoint.
 
 | | EN 12-case | TR 4-case | mean conf | mean ms |
 |---|---|---|---|---|
