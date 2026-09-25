@@ -27,6 +27,8 @@ let lastEnsureAt = 0;
 let launchInFlight = false;
 const blockedOnce = new Set<string>();
 let completionChecked = false;
+// Notes already offered this session, so the note gate stops repeating itself.
+const recommendedNotes = new Set<string>();
 
 function excerpt(value: string, max: number): string {
 	const compact = value.replace(/\s+/g, " ").trim();
@@ -253,24 +255,31 @@ async function noteCandidates(cwd: string): Promise<string[]> {
 }
 
 export default function hook(pi: HookAPI): void {
-	pi.on("session_start", () => scheduleSidecarCheck());
+	pi.on("session_start", () => { recommendedNotes.clear(); scheduleSidecarCheck(); });
 	pi.on("before_agent_start", async (event, ctx) => {
 		scheduleSidecarCheck();
 		try {
 			const candidates = await noteCandidates(ctx.cwd);
 			if (candidates.length < 2) return;
+			// A note already recommended this session is not news. Without this
+			// the gate re-recommended CHANGELOG.md and README.md on every turn -
+			// the same prompt gets the same answer, so the same note came back
+			// turn after turn, which read as the layer looping.
+			const unseen = candidates.filter(candidate => !recommendedNotes.has(candidate));
+			if (unseen.length === 0) return;
 			const questions: Questions = {};
-			for (let index = 0; index < candidates.length; index++) questions[`note_${index}`] = { type: "bool", instructions: "this project note is relevant to the request above" };
+			for (let index = 0; index < unseen.length; index++) questions[`note_${index}`] = { type: "bool", instructions: "this project note is relevant to the request above" };
 			const payload = await decide(ctx, p => {
-				const hits = candidates.filter((_, index) => (p.answers[`note_${index}`]?.bool ?? 0) >= AUTO_ACCEPT);
-				return `notes ${hits.length}/${candidates.length}${hits.length > 0 ? ` ${hits.join(" ")}` : ""}`;
-			}, `${excerpt(event.prompt, 600)}\nnotes: ${candidates.join(", ")}`, questions, p => Math.max(...Object.values(p.answers).map(answerConfidence), 0));
+				const hits = unseen.filter((_, index) => (p.answers[`note_${index}`]?.bool ?? 0) >= AUTO_ACCEPT);
+				return `notes ${hits.length}/${unseen.length}${hits.length > 0 ? ` ${hits.join(" ")}` : ""}`;
+			}, `${excerpt(event.prompt, 600)}\nnotes: ${unseen.join(", ")}`, questions, p => Math.max(...Object.values(p.answers).map(answerConfidence), 0));
 			if (!payload) return;
-			const relevant = candidates.flatMap((candidate, index) => {
+			const relevant = unseen.flatMap((candidate, index) => {
 				const answer = payload.answers[`note_${index}`];
 				return typeof answer?.bool === "number" && answer.bool >= AUTO_ACCEPT ? [`${candidate} (${answer.bool.toFixed(2)})`] : [];
 			});
 			if (relevant.length === 0) return;
+			for (const candidate of unseen) recommendedNotes.add(candidate);
 			return { message: { customType: "laya-decide", content: `Relevant project notes (laya, local): ${relevant.join("; ")} — read before acting if applicable.`, display: true, attribution: "agent" as const } };
 		} catch {
 			return;
