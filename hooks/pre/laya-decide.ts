@@ -234,7 +234,10 @@ export default function hook(pi: HookAPI): void {
 			if (candidates.length < 2) return;
 			const questions: Questions = {};
 			for (let index = 0; index < candidates.length; index++) questions[`note_${index}`] = { type: "bool", instructions: "this project note is relevant to the request above" };
-			const payload = await decide(ctx, "notes", `${excerpt(event.prompt, 600)}\nnotes: ${candidates.join(", ")}`, questions, p => Math.max(...Object.values(p.answers).map(answerConfidence), 0));
+			const payload = await decide(ctx, p => {
+				const hits = candidates.filter((_, index) => (p.answers[`note_${index}`]?.bool ?? 0) >= AUTO_ACCEPT);
+				return `notes ${hits.length}/${candidates.length}${hits.length > 0 ? ` ${hits.join(" ")}` : ""}`;
+			}, `${excerpt(event.prompt, 600)}\nnotes: ${candidates.join(", ")}`, questions, p => Math.max(...Object.values(p.answers).map(answerConfidence), 0));
 			if (!payload) return;
 			const relevant = candidates.flatMap((candidate, index) => {
 				const answer = payload.answers[`note_${index}`];
