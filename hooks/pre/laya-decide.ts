@@ -255,32 +255,38 @@ export default function hook(pi: HookAPI): void {
 	});
 	pi.on("turn_start", () => { blockedOnce.clear(); completionChecked = false; });
 	pi.on("tool_call", async (event, ctx) => {
-		try {
+			try {
 			if (event.toolName === "bash") {
-				const command = typeof event.input.command === "string" ? event.input.command : "";
-				const risk = bashRiskKind(command);
-				if (risk === "suspicious") {
-					const payload = await decide(ctx, p => { const probability = p.answers.is_this_dangerous?.bool ?? 0; return `risk:${probability >= DANGER_BLOCK ? "deny" : probability >= REVIEW_NOTE ? "escalate" : "allow"} ${probability.toFixed(2)}`; }, command, { is_this_dangerous: { type: "bool", instructions: "this command is destructive, irreversible, or security-sensitive" } }, p => answerConfidence(p.answers.is_this_dangerous));
-					const probability = payload?.answers.is_this_dangerous?.bool;
-					if (typeof probability !== "number") return;
-					// Typed escalation, the way the layer is meant to behave: deny
-					// stops the action, escalate hands the judgement back to the
-					// model, allow stays silent and lets the normal permission
-					// flow decide. The gate can only ever tighten, never loosen.
-					if (probability >= DANGER_BLOCK) return { block: true, reason: `laya deny (${probability.toFixed(2)}): ${JSON.stringify(command)} is destructive or security-sensitive. Propose a safer alternative before executing.` };
-					if (probability >= REVIEW_NOTE) return { additionalContext: `laya escalate (${probability.toFixed(2)}): laya is not confident enough to stop ${JSON.stringify(command)}, but flags it as possibly destructive — re-check the intent before continuing.` };
-				} else if (risk === "benign" && blockedOnce.size === 0 && FULL_SUITE.test(command.trim())) {
-					const candidates = await changedTestFiles(pi);
-					if (candidates.length === 0) return;
+			const command = typeof event.input.command === "string" ? event.input.command : "";
+			// Focused checks come first and stand on their own: a full-suite test
+			// run is never a risk candidate, and the benign allowlist rejects the
+			// flagged forms this branch exists for (`pytest -q`, `npm test -- -w`)
+			// because every segment pattern is end-anchored.
+			if (blockedOnce.size === 0 && FULL_SUITE.test(command.trim())) {
+				const candidates = await changedTestFiles(pi);
+				if (candidates.length > 0) {
 					const criteria: Record<string, string> = { run_full: "no subset is worth running first" };
 					for (const candidate of candidates) criteria[candidate] = "a focused changed-file subset is worth running first";
 					const payload = await decide(ctx, p => `focus:${p.answers.focused_checks?.choice ?? "none"} ${answerConfidence(p.answers.focused_checks).toFixed(2)}`, `command: ${command}\nchanged test files: ${candidates.join(", ")}`, { focused_checks: { type: "choice", instructions: "which check should run first", criteria } }, p => answerConfidence(p.answers.focused_checks));
 					const answer = payload?.answers.focused_checks;
-					if (!answer || typeof answer.choice !== "string" || answer.choice === "run_full" || answerConfidence(answer) < AUTO_ACCEPT) return;
-					blockedOnce.add(command);
-					const focused = focusedCommand(command, answer.choice);
-					return { block: true, reason: focused ? `laya suggests focused checks first: ${focused} (${answerConfidence(answer).toFixed(2)}). Run that subset, then the full suite.` : `laya suggests focusing on ${answer.choice} first (${answerConfidence(answer).toFixed(2)}). Run that file's test target, then the full suite.` };
+					if (answer && typeof answer.choice === "string" && answer.choice !== "run_full" && answerConfidence(answer) >= AUTO_ACCEPT) {
+						blockedOnce.add(command);
+						const focused = focusedCommand(command, answer.choice);
+						return { block: true, reason: focused ? `laya suggests focused checks first: ${focused} (${answerConfidence(answer).toFixed(2)}). Run that subset, then the full suite.` : `laya suggests focusing on ${answer.choice} first (${answerConfidence(answer).toFixed(2)}). Run that file's test target, then the full suite.` };
+					}
 				}
+			}
+			if (bashRiskKind(command) === "suspicious") {
+				const payload = await decide(ctx, p => { const probability = p.answers.is_this_dangerous?.bool ?? 0; return `risk:${probability >= DANGER_BLOCK ? "deny" : probability >= REVIEW_NOTE ? "escalate" : "allow"} ${probability.toFixed(2)}`; }, command, { is_this_dangerous: { type: "bool", instructions: "this command is destructive, irreversible, or security-sensitive" } }, p => answerConfidence(p.answers.is_this_dangerous));
+				const probability = payload?.answers.is_this_dangerous?.bool;
+				if (typeof probability !== "number") return;
+				// Typed escalation, the way the layer is meant to behave: deny
+				// stops the action, escalate hands the judgement back to the
+				// model, allow stays silent and lets the normal permission
+				// flow decide. The gate can only ever tighten, never loosen.
+				if (probability >= DANGER_BLOCK) return { block: true, reason: `laya deny (${probability.toFixed(2)}): ${JSON.stringify(command)} is destructive or security-sensitive. Propose a safer alternative before executing.` };
+				if (probability >= REVIEW_NOTE) return { additionalContext: `laya escalate (${probability.toFixed(2)}): laya is not confident enough to stop ${JSON.stringify(command)}, but flags it as possibly destructive — re-check the intent before continuing.` };
+			}
 			}
 			if (event.toolName === "task" && (event.input.agent === undefined || event.input.agent === "")) {
 				const task = excerpt(taskText(event.input), 800);
@@ -290,12 +296,12 @@ export default function hook(pi: HookAPI): void {
 				if (answer?.choice !== "sonic" || answerConfidence(answer) < AUTO_ACCEPT) return;
 				return { input: { ...event.input, agent: "sonic" } };
 			}
-		// Universal observer: every file action goes past laya before it runs.
-		// The verdict always lands on the card (display-only, free). A note is
-		// pushed into the model's context only when laya is confident the change
-		// is risky: the mid-band nudge cost the model extra turns and, measured
-		// over a two-run A/B, changed no outcome.
-		if ((event.toolName === "edit" || event.toolName === "write") && !isJudgeTool(event.toolName, event.input)) {
+			// Universal observer: every file action goes past laya before it runs.
+			// The verdict always lands on the card (display-only, free). A note is
+			// pushed into the model's context only when laya is confident the change
+			// is risky: the mid-band nudge cost the model extra turns and, measured
+			// over a two-run A/B, changed no outcome.
+			if ((event.toolName === "edit" || event.toolName === "write") && !isJudgeTool(event.toolName, event.input)) {
 			const detail = excerpt(JSON.stringify(event.input), 400);
 			if (!detail) return;
 			const payload = await decide(ctx, p => { const probability = p.answers.risky_change?.bool ?? 0; return `act:${event.toolName} ${probability >= DANGER_BLOCK ? "deny" : probability >= REVIEW_NOTE ? "review" : "ok"} ${probability.toFixed(2)}`; }, `tool: ${event.toolName}\ninput: ${detail}`, { risky_change: { type: "bool", instructions: "this file change is destructive, irreversible, or exposes secrets" } }, p => answerConfidence(p.answers.risky_change));
@@ -303,10 +309,10 @@ export default function hook(pi: HookAPI): void {
 			if (typeof probability !== "number") return;
 			if (probability >= DANGER_BLOCK) return { block: true, reason: `laya deny (${probability.toFixed(2)}): this ${event.toolName} looks destructive or exposes secrets. Propose a safer alternative before executing.` };
 			if (probability >= REVIEW_NOTE) return { additionalContext: `laya escalate (${probability.toFixed(2)}): this ${event.toolName} may need a second look — re-check the target before continuing.` };
-		}
-		} catch {
+			}
+			} catch {
 			return;
-		}
+			}
 	});
 	pi.on("tool_result", async (event, ctx) => {
 		try {
