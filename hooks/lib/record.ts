@@ -44,13 +44,27 @@ export function barsFromAnswer(label: string, answer: LoggedAnswer): DecisionBar
 	return Number.isNaN(single) ? [] : [{ label, p: single, picked: true }];
 }
 
-/** Ten-cell rows every decision card draws alike: label, bar, mass, winner. */
+/**
+ * Ten-cell rows every decision card draws alike: label, bar, mass, winner.
+ *
+ * The label column is 22 wide because the card is drawn in a normal terminal,
+ * not a narrow pane. Truncating to fit a bar (the earlier 11-character cut)
+ * produced half-words like `CHANGELOG.m`; an ellipsis reads as a deliberate
+ * cut, a raw slice does not.
+ */
+const LABEL_WIDTH = 22;
+
+function labelCell(text: string): string {
+	const clean = text.replace(/\s+/g, " ").trim();
+	return clean.length <= LABEL_WIDTH ? clean.padEnd(LABEL_WIDTH) : `${clean.slice(0, LABEL_WIDTH - 1)}…`;
+}
+
 export function renderBars(bars: DecisionBar[]): string[] {
 	const rows: string[] = [];
 	for (const item of bars.slice(0, 6)) {
 		const p = Math.max(0, Math.min(1, item.p));
 		const filled = Math.round(p * 10);
-		rows.push(`   ${item.label.slice(0, 11).padEnd(12)}${"█".repeat(filled)}${"░".repeat(10 - filled)} ${p.toFixed(2)}${item.picked ? " ◀" : ""}`);
+		rows.push(`   ${labelCell(item.label)}${"█".repeat(filled)}${"░".repeat(10 - filled)} ${p.toFixed(2)}${item.picked ? " ◀" : ""}`);
 	}
 	return rows;
 }
