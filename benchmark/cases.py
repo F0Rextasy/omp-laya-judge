@@ -137,16 +137,19 @@ CASES.extend([
      "expected": {"dept": "support", "sev": 2}, "note": ""},
 ])
 
-# --- the user's own language ----------------------------------------------
 TR_CASES = [
     ("Ayni faturayi iki kez odedim, iade edin", ROUTE_Q, {"dept": "billing"}),
     ("Uygulama acildiginda cokmeye basliyor", ROUTE_Q, {"dept": "support"}),
     ("Hesabima tanimadigim biri girdi, sifremi degistirdi", ROUTE_Q, {"dept": "security"}),
     ("Aylik faturami bir sonraki aya almak istiyorum", ROUTE_Q, {"dept": "billing"}),
+    ("Kart bilgilerimi siz sifre degistirmenizi istiyorum", ROUTE_Q, {"dept": "security"}),
+    ("Uygulama guncellenince ekran donuyor", ROUTE_Q, {"dept": "support"}),
+    ("Odeme iki kez alinmis, lutfen iade edin", ROUTE_Q, {"dept": "billing"}),
     ("Bu hafta kactin kez gonderdiniz, geri cekin", SPAM_Q, {"q": True}),
     ("Toplanti notlarini paylasmak istiyorum", SPAM_Q, {"q": False}),
-    ("Veritabani tamamen silinmis, yedek yok", SEV, {"sev": 3}),
+    ("Acil: veritabani tamamen silinmis, yedek yok", SEV, {"sev": 3}),
     ("Menudeki yazi hatasi", SEV, {"sev": 0}),
+    ("Siparislerim guncellemesi degil, kayboldu", SEV, {"sev": 2}),
 ]
 for text, question, expected in TR_CASES:
     group = "severity" if question is SEV else ("triage" if question is SPAM_Q else "turkish")
@@ -157,4 +160,6 @@ BY_GROUP: Dict[str, List[Case]] = {}
 for case in CASES:
     BY_GROUP.setdefault(case["group"], []).append(case)
 
-assert len(CASES) == 52, f"expected 52 cases, built {len(CASES)}"
+EXPECTED_CASES = 56
+assert len(CASES) == EXPECTED_CASES, f"expected {EXPECTED_CASES} cases, built {len(CASES)}"
+assert len({case["group"] for case in CASES}) == 5, "every group must be represented"
