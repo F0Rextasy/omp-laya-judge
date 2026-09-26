@@ -36,55 +36,6 @@
   two remaining misses are `score` questions the gate now catches. Wired into
   all three surfaces — `/judge`, `/v1/systemone` and `judge_batch`.
 
-### Fixed
-
-Everything below was found by measuring the running layer against live
-output - this release's own cards, hook-level probes, pattern sweeps and a
-two-run A/B - not by reading the code and assuming.
-
-- **The note gate repeated itself.** It had no per-session memory, so an
-  identical prompt produced an identical answer and the same notes were
-  recommended turn after turn, which read as the layer looping. Notes already
-  offered are filtered out; when nothing new remains the gate stays silent.
-- **Repeated decisions were printed one per line.** A turn that edits fourteen
-  files printed fourteen identical `act:edit ok 0.20` rows. Identical
-  decisions now share one row with their count and summed time - that
-  repetition is what made the feed read as noise instead of as a decision
-  layer.
-- **A block now needs the host's agreement, not just the model's.** The bool
-  head denied two plain source files at 0.88 and 0.93 - a wall of regex looked
-  destructive to it. A write/edit block requires a deterministic signal too: a
-  secret-shaped path (`.env`, `id_rsa`, `credentials`, `*.pem`/`*.key`,
-  `service-account*.json`, `.npmrc`) or a credential-shaped payload (private
-  key header, AWS/GitHub/Slack/OpenAI key forms). Uncorroborated verdicts stop
-  at the card, which is display-only and free.
-- **`/laya-decisions` printed `[object Object]`.** The panel typed ring picks as
-  strings and interpolated them; the sidecar stores objects. Picks render from
-  their real shape now.
-- **`judge_batch` could answer a question nobody asked.** A
-  `{states: [...], questions: {...}}` payload - the natural shape for "these
-  questions against each of these states" - was read as one item with an empty
-  state: `count: 1` for two states, every question answered against nothing
-  (`routing.reason: "no letters detected in state"`), and the call reported
-  success. `core.normalize_batch` expands the shape and raises on an empty
-  state or missing questions.
-- **The focused-checks gate was unreachable.** It sat under
-  `bashRiskKind(...) === "benign"`, and every segment pattern in that allowlist
-  is end-anchored, so `pytest -q`, `npm test -- --watch` and
-  `go test ./... -race` classified as `skip` and the branch never ran. A
-  full-suite test command is not a risk candidate, so the check now stands on
-  its own.
-- **`sonic` routing rarely fired.** The mechanical-task list matched 7 of 12
-  realistic mechanical prompts; widened to 12/12 with no false positives on 7
-  reasoning-heavy prompts. `__tests__/x.js` also stopped being recognised as a
-  test file, which silently dropped those files from the focused-check
-  candidates. Swept in the same pass: 32 destructive commands (0 missed, 0
-  false positives), 12 full-suite forms, 12 test paths.
-- The session banner **and every card** carry the build stamp (`· v0.4.0`).
-  Hooks load once per process, so a window opened before an update keeps the
-  old code in memory; the stamp is how a card names its own staleness instead
-  of the user guessing which window is current.
-
 - `POST /v1/systemone` with more than `LAYA_MAX_QUESTIONS` questions raised
   `NameError: merged` (the chunked path referenced a variable that was never
   assigned) and returned 500 for every wide request - the `find` cascade asks
@@ -188,6 +139,15 @@ two-run A/B - not by reading the code and assuming.
   prefilter, so their branch was unreachable.
 - The focused-checks reason no longer fabricates file-append commands for
   runners that reject them (`go test ./... <file>`); it names the file instead.
+
+- **The note gate repeated itself.** It had no per-session memory, so an
+- **Repeated decisions were printed one per line.** A turn that edits fourteen
+- **A block now needs the host's agreement, not just the model's.** The bool
+- **`/laya-decisions` printed `[object Object]`.** The panel typed ring picks as
+- **`judge_batch` could answer a question nobody asked.** A
+- **The focused-checks gate was unreachable.** It sat under
+- **`sonic` routing rarely fired.** The mechanical-task list matched 7 of 12
+- The session banner **and every card** carry the build stamp (`· v0.4.0`).
 
 ### Measured
 
