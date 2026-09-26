@@ -34,6 +34,12 @@ export interface DecisionRecord {
 	model: string;
 	conf: number;
 	bars?: DecisionBar[];
+	/**
+	 * Column label. Harness picks are classified from their question id
+	 * (`kindOfDecision`); an MCP judge answer is classified by who asked, so
+	 * the most common card on screen is not filed under "other".
+	 */
+	kind?: string;
 }
 
 /** One probability row: an option label, its mass, and whether it won. */
@@ -132,9 +138,10 @@ export function decisionHead(kind: string, core: string, ms: number): string {
  * `act:edit ok 0.20` - the repetition was what made the feed read as noise.
  */
 export function decisionRows(entries: DecisionRecord[], withBars = 2): string[] {
+	const kindOf = (entry: DecisionRecord): string => entry.kind ?? kindOfDecision(entry.core.split(/[ =]/)[0] ?? "");
 	const groups = new Map<string, { entry: DecisionRecord; count: number; ms: number }>();
 	for (const entry of entries) {
-		const key = `${kindOfDecision(entry.core.split(/[ =]/)[0] ?? "")}|${entry.core}`;
+		const key = `${kindOf(entry)}|${entry.core}`;
 		const existing = groups.get(key);
 		if (existing) {
 			existing.count += 1;
@@ -145,7 +152,7 @@ export function decisionRows(entries: DecisionRecord[], withBars = 2): string[] 
 	}
 	return [...groups.values()].flatMap((group, index) => {
 		const count = group.count > 1 ? ` ×${group.count}` : "";
-		const head = decisionHead(kindOfDecision(group.entry.core.split(/[ =]/)[0] ?? ""), group.entry.core + count, group.ms);
+		const head = decisionHead(kindOf(group.entry), group.entry.core + count, group.ms);
 		return index < withBars && group.entry.bars !== undefined && group.entry.bars.length > 0 ? [head, ...renderBars(group.entry.bars.slice(0, 4))] : [head];
 	});
 }

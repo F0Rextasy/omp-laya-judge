@@ -16,7 +16,7 @@ type Answer = {
 	confidence?: number;
 	legend?: Record<string, string>;
 };
-type ParsedDecision = { core: string; ms: number; model: string; conf: number; bars?: DecisionBar[] };
+type ParsedDecision = { core: string; ms: number; model: string; conf: number; bars?: DecisionBar[]; kind?: string };
 
 const KEY = "laya-live";
 
@@ -231,6 +231,7 @@ export default function hook(pi: HookAPI): void {
 			model: parsed.model,
 			conf: parsed.conf,
 			bars: parsed.bars,
+			kind: "judge",
 		};
 		ctx.ui.setStatus(KEY, formatStatus(entry));
 		// Native and write-bridge events carry identical payloads; count the pair once.
