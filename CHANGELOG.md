@@ -125,6 +125,22 @@
 
 ### Fixed
 
+- **The gates were reading the wrong confidence field.** laya returns two:
+  `confidence` is max(p) for the bool head but `1 - H(p)/log k` for choice
+  and score - uncalibrated and option-count dependent - while
+  `answer_confidence` is max(p) everywhere and is the field the model card
+  says to gate on. A three-way choice peaking at 0.97 arrives as confidence
+  0.87, so a 0.6 threshold escalated work the model was sure about. Measured
+  after switching: auto-accept 7/12 -> **9/12** with false-accept still
+  **0%** - more work settled locally, no new wrong answers trusted. (The
+  model card also notes its `act_head` carries no signal, AUROC 0.30; the
+  layer gates on answer confidence and ignores it.)
+- A System One question id is chosen by the caller, so an unrecognised one is
+  still a model pick. Such cards read `pick` instead of `other`, which said
+  the layer did not know what it had just done.
+
+### Fixed
+
 - Hook gates read `.bool` from sidecar replies, but the sidecar serves laya's
   raw heads — the yes/no head arrives as `noul` (which is P(true), per
   `core.unpack_judge_answer`). Without normalizing it every bool gate read

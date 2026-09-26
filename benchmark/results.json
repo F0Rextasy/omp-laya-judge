@@ -1,23 +1,23 @@
 {
  "schema": 2,
- "timestamp": "2026-09-25T22:00:11Z",
+ "timestamp": "2026-09-26T12:59:34Z",
  "protocol": {
   "note": "warmup excluded; wall time per judge() call; CPU only",
   "threads": 6,
   "laya": "0.3.20",
   "torch": "2.14.0+cpu"
  },
- "import_s": 34.9,
- "warmup_s": 0.1,
+ "import_s": 17.4,
+ "warmup_s": 16.6,
  "cases": 12,
  "correct": 10,
  "accuracy": 0.833,
- "total_ms": 1871,
- "mean_ms": 156,
- "p50_ms": 194,
- "p95_ms": 297,
+ "total_ms": 4824,
+ "mean_ms": 402,
+ "p50_ms": 238,
+ "p95_ms": 1108,
  "min_ms": 0,
- "max_ms": 297,
+ "max_ms": 1108,
  "llm_tokens_burned": 0,
  "rows": [
   {
@@ -29,10 +29,10 @@
      "billing": 0.9805,
      "support": 0.0195
     },
-    "confidence": 0.8614
+    "confidence": 0.9805
    },
    "ok": true,
-   "ms": 194
+   "ms": 209
   },
   {
    "qid": "dept",
@@ -43,10 +43,10 @@
      "billing": 0.0472,
      "support": 0.9528
     },
-    "confidence": 0.7254
+    "confidence": 0.9528
    },
    "ok": true,
-   "ms": 195
+   "ms": 215
   },
   {
    "qid": "even",
@@ -85,10 +85,10 @@
      "2": 0.5406,
      "3": 0.0143
     },
-    "confidence": 0.3855
+    "confidence": 0.5406
    },
    "ok": true,
-   "ms": 163
+   "ms": 336
   },
   {
    "qid": "sev",
@@ -107,10 +107,10 @@
      "2": 0.0277,
      "3": 0.0079
     },
-    "confidence": 0.3938
+    "confidence": 0.5016
    },
    "ok": false,
-   "ms": 221
+   "ms": 236
   },
   {
    "qid": "spam",
@@ -120,7 +120,7 @@
     "confidence": 0.923
    },
    "ok": true,
-   "ms": 297
+   "ms": 831
   },
   {
    "qid": "spam",
@@ -130,7 +130,7 @@
     "confidence": 1.0
    },
    "ok": true,
-   "ms": 229
+   "ms": 977
   },
   {
    "qid": "dept",
@@ -141,10 +141,10 @@
      "billing": 0.0918,
      "support": 0.9082
     },
-    "confidence": 0.5576
+    "confidence": 0.9082
    },
    "ok": true,
-   "ms": 155
+   "ms": 671
   },
   {
    "qid": "sev",
@@ -163,10 +163,10 @@
      "2": 0.5331,
      "3": 0.4475
     },
-    "confidence": 0.438
+    "confidence": 0.5331
    },
    "ok": false,
-   "ms": 197
+   "ms": 1108
   },
   {
    "qid": "even",
@@ -195,10 +195,10 @@
      "2": 0.0619,
      "3": 0.0222
     },
-    "confidence": 0.3903
+    "confidence": 0.6933
    },
    "ok": true,
-   "ms": 220
+   "ms": 241
   }
  ]
 }

@@ -21,6 +21,7 @@ import urllib.request
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from collections import deque
+import upstream
 
 # Cache-first: a local judge must answer without the hub. A fresh install can
 # set HF_HUB_OFFLINE=0 for its first download.
@@ -105,9 +106,25 @@ def _resident():
 
 
 def _info():
+    backend = upstream.describe()
+    if not backend["local"]:
+        # An upstream answers instead of laya, so the banner must not claim
+        # "laya active" and the cards must not claim "0 tokens".
+        return {
+            "model": f"upstream/{upstream.upstream_url()}",
+            "backend": "systemone",
+            "url": backend["url"],
+            "key_present": backend["key_present"],
+            "device": "remote",
+            "types": list(core.SUPPORTED_TYPES),
+            "loaded": True,
+            "resident": [],
+            "startup_error": None,
+        }
     pinned = os.environ.get("LAYA_MODEL")
     return {
         "model": f"laya/{pinned}" if pinned else "laya/auto",
+        "backend": "laya",
         "device": "cpu",
         "types": list(core.SUPPORTED_TYPES),
         "loaded": router is not None,
@@ -165,13 +182,24 @@ def _empty_payload():
 
 def predict(state, questions):
     t0 = time.time()
-    active_router = _wait_for_router()
     if len(questions or {}) > MAX_QUESTIONS:
         raise RequestTooLarge(
             "laya serves at most %d questions per call (got %d)"
             % (MAX_QUESTIONS, len(questions or {}))
         )
     rest, resolved = _split_arithmetic(state, questions)
+    if upstream.configured():
+        # Arithmetic stays local on every backend: it is exact everywhere and
+        # free everywhere, so there is nothing to outsource.
+        payload = upstream.judge(state, rest) if rest else {"answers": {}}
+        merged = dict(payload.get("answers") or {})
+        merged.update(core.arithmetic_answer_dicts(resolved))
+        print("judge: upstream %d question(s)%s" % (
+            len(rest), ", %d answered by arithmetic" % len(resolved) if resolved else ""), flush=True)
+        return {"answers": merged, "model": payload.get("model") or "upstream",
+                "routing": {"model": "upstream"}, "usage": payload.get("usage"),
+                "latency_ms": round((time.time() - t0) * 1000)}
+    active_router = _wait_for_router()
     laya_questions, _kinds = core.to_laya_questions(rest)
     raw = core.predict_locked(
         active_router, core.coerce_state(state), laya_questions,

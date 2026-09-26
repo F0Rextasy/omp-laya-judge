@@ -105,10 +105,16 @@ async function pullHarnessDecisions(): Promise<ParsedDecision[]> {
 		for (const decision of payload.decisions ?? []) {
 			const entries = Object.entries(decision.picks ?? {});
 			if (entries.length === 0) continue;
-			const shown = entries.slice(0, 3).map(([id, value]) => `${id}=${typeof value === "string" ? value : value.pick ?? "?"}`).join(" ");
+			const shown = entries.slice(0, 3).map(([id, value]) => `${id}=${pickLabel(value)}`).join(" ");
 			const rest = entries.length > 3 ? ` +${entries.length - 3}` : "";
 			const bars = entries.flatMap(([id, value]) => barsFromAnswer(id, value)).slice(0, 6);
-			const entry = { core: `${shown}${rest}`, ms: decision.ms ?? 0, model: decision.model ?? "laya", conf: 0, bars };
+			// A System One question id is chosen by the caller, so an
+			// unrecognised one is still a model pick - "pick" says that,
+			// "other" would say we do not know what the layer just did.
+			const kinds = entries.map(([id]) => kindOfDecision(id));
+			const named = kinds.every(value => value === kinds[0]) ? kinds[0] : "pick";
+			const kind = named === "other" ? "pick" : named;
+			const entry = { core: `${shown}${rest}`, ms: decision.ms ?? 0, model: decision.model ?? "laya", conf: 0, bars, kind };
 			pulled.push(entry);
 			record(entry);
 		}

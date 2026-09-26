@@ -2,7 +2,7 @@
 
 Local System-1 judge for [oh-my-pi](https://github.com/can1357/oh-my-pi),
 powered by [laya](https://github.com/NandhaKishorM/laya). Typed decisions
-(`choice`/`bool`/`score`) at **mean 156ms (p50 194ms, p95 297ms)** on CPU,
+(`choice`/`bool`/`score`) at **mean 402ms (p50 238ms, p95 1108ms)** on CPU,
 **0 LLM tokens burned**, nothing leaves the machine.
 
 ![before/after](assets/before-after.gif)
@@ -14,7 +14,7 @@ on CPU, no GPU:
 
 | | LLM `judge()` | laya-judge |
 |---|---|---|
-| latency / question | 18.4s (16–25s sampled) | mean 156ms (p50 194ms, p95 297ms) |
+| latency / question | 18.4s (16–25s sampled) | mean 402ms (p50 238ms, p95 1108ms) |
 | tokens / question | 728 | 0 |
 | accuracy (12-case bench) | n/a (reference) | 10/12 |
 
@@ -33,9 +33,9 @@ Policy: answers with confidence ≥ 0.6 are auto-accepted, below escalates
 to the LLM. What that bought on the 12-case bench
 (`benchmark/calibration.json`, computed — not asserted):
 
-- **auto-accept 7/12**, 5 escalated to the LLM
+- **auto-accept 9/12**, 3 escalated to the LLM
 - 2 misses total: **both caught by the gate**, 0 escaped
-- **false-accept 0%** (0 of the 7 auto-accepts were wrong)
+- **false-accept 0%** (0 of the 9 auto-accepts were wrong)
 
 Both misses are `score` questions — the severity head lands on the right
 neighbourhood (2.4 for a 3) but not the exact bucket, and both sit under the

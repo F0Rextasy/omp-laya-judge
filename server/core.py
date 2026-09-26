@@ -170,25 +170,44 @@ def to_laya_questions(questions: Optional[Dict[str, Any]]) -> Tuple[Dict[str, An
     return laya_q, kinds
 
 
+def _confidence(res: Dict[str, Any]) -> float:
+    """The calibrated confidence, which is not the field named `confidence`.
+
+    laya returns two: `confidence` is max(p) for the bool head but
+    `1 - H(p)/log k` for choice and score - an uncalibrated, option-count
+    dependent number - while `answer_confidence` is max(p) everywhere and is
+    the field the model card says to gate on. A 0.97-peaked three-way choice
+    arrives as confidence 0.87, so a threshold read from the wrong field
+    escalates work the model was sure about. Falls back for older payloads.
+    """
+    value = res.get("answer_confidence")
+    if value is None:
+        value = res.get("confidence", 0.0)
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def unpack_judge_answer(res: Dict[str, Any], kind: str) -> Dict[str, Any]:
     """One laya answer -> the MCP judge() response shape for this type."""
     if kind in ("bool", "noul"):
         # laya "noul" head is [false, true]: noul == P(true).
         return {
             "bool": float(res.get("noul", 0.0)),
-            "confidence": float(res.get("confidence", 0.0)),
+            "confidence": _confidence(res),
         }
     if kind == "score":
         return {
             "score": float(res.get("score", 0.0)),
             "legend": res.get("legend", {}),
             "probabilities": res.get("probabilities", {}),
-            "confidence": float(res.get("confidence", 0.0)),
+            "confidence": _confidence(res),
         }
     return {
         "choice": res.get("choice"),
         "probabilities": res.get("probabilities", {}),
-        "confidence": float(res.get("confidence", 0.0)),
+        "confidence": _confidence(res),
     }
 
 
@@ -251,14 +270,14 @@ def systemone_result(raw: Any, kinds: Dict[str, str], latency_ms: int) -> Dict[s
                 "type": "score",
                 "score": float(res.get("score", 0.0)),
                 "probabilities": res.get("probabilities", {}),
-                "confidence": float(res.get("confidence", 0.0)),
+				"confidence": _confidence(res),
             }
         else:
             answers[qid] = {
                 "type": "choice",
                 "choice": res.get("choice"),
                 "probabilities": res.get("probabilities", {}),
-                "confidence": float(res.get("confidence", 0.0)),
+				"confidence": _confidence(res),
             }
     usage = raw.get("usage", {}) if isinstance(raw, dict) else {}
     return {
