@@ -7,6 +7,15 @@ powered by [laya](https://github.com/NandhaKishorM/laya). Typed decisions
 
 ![before/after](assets/before-after.gif)
 
+The decision layer, mid-turn. Every card is a real answer from the local
+sidecar - the notes gate picking project notes, the edit gate judging a file
+change, the bash gate reading a destructive command, the recovery gate
+choosing what to do about a failed tool - drawn by the same row builder the
+TUI uses (`hooks/lib/record.ts`) and regenerated with
+`python benchmark/live_feed_gif.py`:
+
+![live feed](assets/live-feed.gif)
+
 ## Measured head-to-head
 
 Same 12 classification questions, real model via `omp -p` vs this plugin
@@ -67,6 +76,40 @@ TR sample is small (4); the honest read is laya >> chance (2–3 vs 0), not
 a checkpoint coronation.
 
 ![benchmark](assets/benchmark.svg)
+
+## Which judge answers
+
+The sidecar speaks `POST /v1/systemone`, so the model behind it is a setting,
+not a fork. Measured on the same 56 cases with one grading function
+(`benchmark/compare_backends.py`; routing 12, triage 20, severity 11, the real
+mixed JSON call 6, Turkish 7):
+
+| backend | correct | median | p95 | route | triage | severity | mixed | Turkish | ECE |
+|---|---|---|---|---|---|---|---|---|---|
+| **laya/english** (default) | **33/56** | 242ms | 491ms | 11/12 | 16/20 | 3/11 | 3/6 | 0/7 | 0.443 |
+| von 1.2 | 29/56 | 269ms | 486ms | 9/12 | 15/20 | 4/11 | 1/6 | 0/7 | **0.348** |
+| laya/multilingual | 26/56 | **88ms** | **173ms** | 9/12 | 13/20 | 3/11 | 1/6 | 0/7 | 0.480 |
+
+Switch backends by environment; the hook never changes your models for you.
+
+```sh
+LAYA_BACKEND=systemone LAYA_UPSTREAM_URL=http://127.0.0.1:8000 ...   # von, or jev
+LAYA_BACKEND=systemone LAYA_UPSTREAM_URL=https://api.typesafe.ai/v1/systemone \
+             LAYA_UPSTREAM_KEY_ENV=TYPESAFE_API_KEY ...             # jev, your key
+LAYA_MODEL=multilingual ...                                        # faster, less sure
+```
+
+`LAYA_UPSTREAM_KEY_ENV` names the variable holding the key, so the key itself
+never lands in a config file. `/info` reports which backend is actually
+answering, and arithmetic stays local on every backend because it is exact
+and free everywhere.
+
+Two honest limits from that table: **Turkish is 0/7 on all three** - including
+laya's multilingual checkpoint - so the English checkpoints are not usable
+for non-English text, and the layer should not gate on it. And laya's
+`answer_confidence` is the field to threshold, not the `confidence` it also
+returns; the gates use the calibrated one, which raised local auto-accept
+from 7/12 to 9/12 with false-accept still at 0%.
 
 ## Demos
 
