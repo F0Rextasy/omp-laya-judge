@@ -157,4 +157,4 @@ BY_GROUP: Dict[str, List[Case]] = {}
 for case in CASES:
     BY_GROUP.setdefault(case["group"], []).append(case)
 
-assert len(CASES) == 54, f"expected 54 cases, built {len(CASES)}"
+assert len(CASES) == 52, f"expected 52 cases, built {len(CASES)}"

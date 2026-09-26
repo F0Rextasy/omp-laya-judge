@@ -1,0 +1,823 @@
+[
+ {
+  "backend": "laya (in-process)",
+  "rows": [
+   {
+    "id": "route-0",
+    "group": "route",
+    "ms": 310.7,
+    "ok": true,
+    "detail": {
+     "dept": {
+      "expected": "billing",
+      "got": "billing",
+      "ok": true,
+      "probability": null
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "route-1",
+    "group": "route",
+    "ms": 335.8,
+    "ok": false,
+    "detail": {
+     "dept": {
+      "expected": "billing",
+      "got": "security",
+      "ok": false,
+      "probability": null
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "route-2",
+    "group": "route",
+    "ms": 353.6,
+    "ok": true,
+    "detail": {
+     "dept": {
+      "expected": "support",
+      "got": "support",
+      "ok": true,
+      "probability": null
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "route-3",
+    "group": "route",
+    "ms": 500.6,
+    "ok": true,
+    "detail": {
+     "dept": {
+      "expected": "support",
+      "got": "support",
+      "ok": true,
+      "probability": null
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "route-4",
+    "group": "route",
+    "ms": 429.4,
+    "ok": true,
+    "detail": {
+     "dept": {
+      "expected": "security",
+      "got": "security",
+      "ok": true,
+      "probability": null
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "route-5",
+    "group": "route",
+    "ms": 305.8,
+    "ok": true,
+    "detail": {
+     "dept": {
+      "expected": "security",
+      "got": "security",
+      "ok": true,
+      "probability": null
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "route-6",
+    "group": "route",
+    "ms": 388.6,
+    "ok": true,
+    "detail": {
+     "dept": {
+      "expected": "billing",
+      "got": "billing",
+      "ok": true,
+      "probability": null
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "route-7",
+    "group": "route",
+    "ms": 372.9,
+    "ok": true,
+    "detail": {
+     "dept": {
+      "expected": "support",
+      "got": "support",
+      "ok": true,
+      "probability": null
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "route-8",
+    "group": "route",
+    "ms": 238.4,
+    "ok": true,
+    "detail": {
+     "dept": {
+      "expected": "security",
+      "got": "security",
+      "ok": true,
+      "probability": null
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "route-9",
+    "group": "route",
+    "ms": 297.6,
+    "ok": true,
+    "detail": {
+     "dept": {
+      "expected": "billing",
+      "got": "billing",
+      "ok": true,
+      "probability": null
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "route-10",
+    "group": "route",
+    "ms": 245.3,
+    "ok": true,
+    "detail": {
+     "dept": {
+      "expected": "support",
+      "got": "support",
+      "ok": true,
+      "probability": null
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "route-11",
+    "group": "route",
+    "ms": 242.0,
+    "ok": true,
+    "detail": {
+     "dept": {
+      "expected": "security",
+      "got": "security",
+      "ok": true,
+      "probability": null
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "triage-12",
+    "group": "triage",
+    "ms": 245.5,
+    "ok": true,
+    "detail": {
+     "q": {
+      "expected": true,
+      "got": true,
+      "ok": true,
+      "probability": 0.891
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "triage-13",
+    "group": "triage",
+    "ms": 162.1,
+    "ok": true,
+    "detail": {
+     "q": {
+      "expected": false,
+      "got": false,
+      "ok": true,
+      "probability": 0.0001
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "triage-14",
+    "group": "triage",
+    "ms": 251.2,
+    "ok": false,
+    "detail": {
+     "q": {
+      "expected": true,
+      "got": false,
+      "ok": false,
+      "probability": 0.1285
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "triage-15",
+    "group": "triage",
+    "ms": 403.8,
+    "ok": true,
+    "detail": {
+     "q": {
+      "expected": false,
+      "got": false,
+      "ok": true,
+      "probability": 0.076
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "triage-16",
+    "group": "triage",
+    "ms": 175.5,
+    "ok": true,
+    "detail": {
+     "q": {
+      "expected": true,
+      "got": true,
+      "ok": true,
+      "probability": 0.9162
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "triage-17",
+    "group": "triage",
+    "ms": 3484.6,
+    "ok": true,
+    "detail": {
+     "q": {
+      "expected": false,
+      "got": false,
+      "ok": true,
+      "probability": 0.0315
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "triage-18",
+    "group": "triage",
+    "ms": 1145.8,
+    "ok": true,
+    "detail": {
+     "q": {
+      "expected": false,
+      "got": false,
+      "ok": true,
+      "probability": 0.0001
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "triage-19",
+    "group": "triage",
+    "ms": 747.6,
+    "ok": true,
+    "detail": {
+     "q": {
+      "expected": true,
+      "got": true,
+      "ok": true,
+      "probability": 0.5973
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "triage-20",
+    "group": "triage",
+    "ms": 514.6,
+    "ok": true,
+    "detail": {
+     "q": {
+      "expected": false,
+      "got": false,
+      "ok": true,
+      "probability": 0.0
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "triage-21",
+    "group": "triage",
+    "ms": 475.7,
+    "ok": false,
+    "detail": {
+     "q": {
+      "expected": true,
+      "got": false,
+      "ok": false,
+      "probability": 0.1321
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "triage-22",
+    "group": "triage",
+    "ms": 317.3,
+    "ok": true,
+    "detail": {
+     "q": {
+      "expected": true,
+      "got": true,
+      "ok": true,
+      "probability": 0.9855
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "triage-23",
+    "group": "triage",
+    "ms": 177.5,
+    "ok": true,
+    "detail": {
+     "q": {
+      "expected": false,
+      "got": false,
+      "ok": true,
+      "probability": 0.1284
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "lang-24",
+    "group": "triage",
+    "ms": 223.5,
+    "ok": false,
+    "detail": {
+     "en": {
+      "expected": true,
+      "got": false,
+      "ok": false,
+      "probability": 0.256
+     }
+    },
+    "note": "english detection across scripts"
+   },
+   {
+    "id": "lang-25",
+    "group": "triage",
+    "ms": 106.8,
+    "ok": true,
+    "detail": {
+     "en": {
+      "expected": false,
+      "got": false,
+      "ok": true,
+      "probability": 0.0671
+     }
+    },
+    "note": "english detection across scripts"
+   },
+   {
+    "id": "lang-26",
+    "group": "triage",
+    "ms": 103.0,
+    "ok": true,
+    "detail": {
+     "en": {
+      "expected": false,
+      "got": false,
+      "ok": true,
+      "probability": 0.0925
+     }
+    },
+    "note": "english detection across scripts"
+   },
+   {
+    "id": "lang-27",
+    "group": "triage",
+    "ms": 98.0,
+    "ok": true,
+    "detail": {
+     "en": {
+      "expected": false,
+      "got": false,
+      "ok": true,
+      "probability": 0.0201
+     }
+    },
+    "note": "english detection across scripts"
+   },
+   {
+    "id": "lang-28",
+    "group": "triage",
+    "ms": 331.4,
+    "ok": false,
+    "detail": {
+     "en": {
+      "expected": true,
+      "got": false,
+      "ok": false,
+      "probability": 0.0899
+     }
+    },
+    "note": "english detection across scripts"
+   },
+   {
+    "id": "lang-29",
+    "group": "triage",
+    "ms": 69.4,
+    "ok": true,
+    "detail": {
+     "en": {
+      "expected": false,
+      "got": false,
+      "ok": true,
+      "probability": 0.4001
+     }
+    },
+    "note": "english detection across scripts"
+   },
+   {
+    "id": "sev-30",
+    "group": "severity",
+    "ms": 204.7,
+    "ok": true,
+    "detail": {
+     "sev": {
+      "expected": 0,
+      "got": 0,
+      "ok": true,
+      "probability": null
+     }
+    },
+    "note": "cosmetic"
+   },
+   {
+    "id": "sev-31",
+    "group": "severity",
+    "ms": 228.7,
+    "ok": false,
+    "detail": {
+     "sev": {
+      "expected": 0,
+      "got": 1,
+      "ok": false,
+      "probability": null
+     }
+    },
+    "note": "cosmetic"
+   },
+   {
+    "id": "sev-32",
+    "group": "severity",
+    "ms": 237.6,
+    "ok": true,
+    "detail": {
+     "sev": {
+      "expected": 1,
+      "got": 1,
+      "ok": true,
+      "probability": null
+     }
+    },
+    "note": "small user-facing bug"
+   },
+   {
+    "id": "sev-33",
+    "group": "severity",
+    "ms": 215.9,
+    "ok": true,
+    "detail": {
+     "sev": {
+      "expected": 1,
+      "got": 1,
+      "ok": true,
+      "probability": null
+     }
+    },
+    "note": "wrong data, not fatal"
+   },
+   {
+    "id": "sev-34",
+    "group": "severity",
+    "ms": 256.5,
+    "ok": false,
+    "detail": {
+     "sev": {
+      "expected": 2,
+      "got": 1,
+      "ok": false,
+      "probability": null
+     }
+    },
+    "note": "major slowness, core path"
+   },
+   {
+    "id": "sev-35",
+    "group": "severity",
+    "ms": 308.2,
+    "ok": false,
+    "detail": {
+     "sev": {
+      "expected": 2,
+      "got": 1,
+      "ok": false,
+      "probability": null
+     }
+    },
+    "note": "revenue path, intermittent"
+   },
+   {
+    "id": "sev-36",
+    "group": "severity",
+    "ms": 481.9,
+    "ok": false,
+    "detail": {
+     "sev": {
+      "expected": 3,
+      "got": 2,
+      "ok": false,
+      "probability": null
+     }
+    },
+    "note": "irreversible data loss"
+   },
+   {
+    "id": "sev-37",
+    "group": "severity",
+    "ms": 333.9,
+    "ok": false,
+    "detail": {
+     "sev": {
+      "expected": 3,
+      "got": 2,
+      "ok": false,
+      "probability": null
+     }
+    },
+    "note": "total outage"
+   },
+   {
+    "id": "mixed-1",
+    "group": "mixed",
+    "ms": 781.7,
+    "ok": true,
+    "detail": {
+     "billing": {
+      "expected": "billing",
+      "got": "billing",
+      "ok": true,
+      "probability": null
+     },
+     "urgent": {
+      "expected": false,
+      "got": false,
+      "ok": true,
+      "probability": 0.0513
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "mixed-2",
+    "group": "mixed",
+    "ms": 493.8,
+    "ok": false,
+    "detail": {
+     "dept": {
+      "expected": "security",
+      "got": "security",
+      "ok": true,
+      "probability": null
+     },
+     "urgent": {
+      "expected": true,
+      "got": false,
+      "ok": false,
+      "probability": 0.1572
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "mixed-3",
+    "group": "mixed",
+    "ms": 428.6,
+    "ok": false,
+    "detail": {
+     "dept": {
+      "expected": "support",
+      "got": "support",
+      "ok": true,
+      "probability": null
+     },
+     "tech": {
+      "expected": true,
+      "got": false,
+      "ok": false,
+      "probability": 0.3254
+     }
+    },
+    "note": "not urgent, but technical"
+   },
+   {
+    "id": "mixed-4",
+    "group": "mixed",
+    "ms": 401.7,
+    "ok": true,
+    "detail": {
+     "dept": {
+      "expected": "billing",
+      "got": "billing",
+      "ok": true,
+      "probability": null
+     },
+     "sev": {
+      "expected": 1,
+      "got": 1,
+      "ok": true,
+      "probability": null
+     }
+    },
+    "note": "money, but reversible"
+   },
+   {
+    "id": "mixed-5",
+    "group": "mixed",
+    "ms": 518.2,
+    "ok": false,
+    "detail": {
+     "dept": {
+      "expected": "security",
+      "got": "security",
+      "ok": true,
+      "probability": null
+     },
+     "urgent": {
+      "expected": true,
+      "got": false,
+      "ok": false,
+      "probability": 0.0917
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "mixed-6",
+    "group": "mixed",
+    "ms": 582.1,
+    "ok": true,
+    "detail": {
+     "dept": {
+      "expected": "support",
+      "got": "support",
+      "ok": true,
+      "probability": null
+     },
+     "sev": {
+      "expected": 2,
+      "got": 2,
+      "ok": true,
+      "probability": null
+     }
+    },
+    "note": ""
+   },
+   {
+    "id": "turkish-44",
+    "group": "turkish",
+    "ms": 407.4,
+    "ok": false,
+    "detail": {
+     "dept": {
+      "expected": "billing",
+      "got": null,
+      "ok": false,
+      "probability": null
+     }
+    },
+    "note": "turkish"
+   },
+   {
+    "id": "turkish-45",
+    "group": "turkish",
+    "ms": 643.7,
+    "ok": false,
+    "detail": {
+     "dept": {
+      "expected": "support",
+      "got": null,
+      "ok": false,
+      "probability": null
+     }
+    },
+    "note": "turkish"
+   },
+   {
+    "id": "turkish-46",
+    "group": "turkish",
+    "ms": 721.6,
+    "ok": false,
+    "detail": {
+     "dept": {
+      "expected": "security",
+      "got": null,
+      "ok": false,
+      "probability": null
+     }
+    },
+    "note": "turkish"
+   },
+   {
+    "id": "turkish-47",
+    "group": "turkish",
+    "ms": 412.3,
+    "ok": false,
+    "detail": {
+     "dept": {
+      "expected": "billing",
+      "got": null,
+      "ok": false,
+      "probability": null
+     }
+    },
+    "note": "turkish"
+   },
+   {
+    "id": "triage-48",
+    "group": "triage",
+    "ms": 396.4,
+    "ok": true,
+    "detail": {
+     "q": {
+      "expected": true,
+      "got": true,
+      "ok": true,
+      "probability": 0.7282
+     }
+    },
+    "note": "turkish"
+   },
+   {
+    "id": "triage-49",
+    "group": "triage",
+    "ms": 324.3,
+    "ok": true,
+    "detail": {
+     "q": {
+      "expected": false,
+      "got": false,
+      "ok": true,
+      "probability": 0.2104
+     }
+    },
+    "note": "turkish"
+   },
+   {
+    "id": "severity-50",
+    "group": "severity",
+    "ms": 366.4,
+    "ok": false,
+    "detail": {
+     "sev": {
+      "expected": 3,
+      "got": null,
+      "ok": false,
+      "probability": null
+     }
+    },
+    "note": "turkish"
+   },
+   {
+    "id": "severity-51",
+    "group": "severity",
+    "ms": 208.9,
+    "ok": false,
+    "detail": {
+     "sev": {
+      "expected": 0,
+      "got": null,
+      "ok": false,
+      "probability": null
+     }
+    },
+    "note": "turkish"
+   }
+  ]
+ }
+]

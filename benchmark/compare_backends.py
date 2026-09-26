@@ -21,9 +21,9 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from typing import Any, Dict, List, Tuple
-
+from typing import Any, Dict, List, Optional, Tuple
 HERE = os.path.dirname(os.path.abspath(__file__))
+
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, "..", "server"))
 
@@ -42,8 +42,7 @@ def call_endpoint(url: str, state: Any, questions: Dict[str, Any]) -> Dict[str, 
     with urllib.request.urlopen(request, timeout=TIMEOUT_S) as response:
         return json.loads(response.read())
 
-
-def grade(expected: Any, answer: Dict[str, Any]) -> Tuple[bool, Any]:
+def grade(expected: Any, answer: Dict[str, Any]) -> Tuple[bool, Any, Optional[float]]:
     """One answer against one expectation. The only definition of correct.
 
     choice -> the label must match exactly.
@@ -51,20 +50,61 @@ def grade(expected: Any, answer: Dict[str, Any]) -> Tuple[bool, Any]:
     score  -> the rubric bucket with the most mass. Rounding a regression
               instead would let a model that is 0.01 from a boundary pass or
               fail on noise, which is exactly what the old bench measured.
+
+    The third value is the stated probability, kept for the calibration
+    measurement; only yes/no questions have one.
     """
     kind = answer.get("type")
     if kind == "noul" or "bool" in answer:
-        got = float(answer.get("noul", answer.get("bool", 0.0))) >= 0.5
-        return got == bool(expected), got
+        probability = float(answer.get("noul", answer.get("bool", 0.0)))
+        got = probability >= 0.5
+        return got == bool(expected), got, probability
     if kind == "score":
         probs = answer.get("probabilities") or {}
         if probs:
             got = max(probs, key=lambda key: probs[key])
-            return int(got) == int(expected), int(got)
+            return int(got) == int(expected), int(got), None
         score = float(answer.get("score", 0.0))
-        return int(round(score)) == int(expected), score
+        return int(round(score)) == int(expected), score, None
     got = answer.get("choice")
-    return got == expected, got
+    return got == expected, got, None
+
+def calibration(rows: List[Dict[str, Any]], bins: int = 5) -> Dict[str, Any]:
+    """Expected calibration error over the yes/no questions.
+
+    A decision layer that gates on confidence is only as trustworthy as that
+    number: a backend that says 0.9 and is right 60% of the time escalates the
+    wrong work. ECE is |mean stated probability - observed hit rate| per
+    probability bin, weighted by bin population, so 0.0 is perfect and larger
+    is worse. It needs both the stated probability and the outcome, so it is
+    measured on the bool/noul rows only.
+    """
+    points: List[Tuple[float, bool]] = []
+    for row in rows:
+        for check in (row.get("detail") or {}).values():
+            if not isinstance(check.get("got"), bool):
+                continue
+            if not check.get("probability"):
+                continue
+            points.append((float(check["probability"]), bool(check["ok"])))
+    if not points:
+        return {"points": 0, "ece": None, "mean_stated": None, "accuracy": None}
+    buckets: Dict[int, List[Tuple[float, bool]]] = {}
+    for stated, hit in points:
+        index = min(bins - 1, int(stated * bins))
+        buckets.setdefault(index, []).append((stated, hit))
+    total = len(points)
+    ece = 0.0
+    for group in buckets.values():
+        mean_stated = sum(stated for stated, _ in group) / len(group)
+        hit_rate = sum(1 for _, hit in group if hit) / len(group)
+        ece += len(group) / total * abs(mean_stated - hit_rate)
+    return {
+        "points": total,
+        "ece": round(ece, 3),
+        "mean_stated": round(sum(stated for stated, _ in points) / total, 3),
+        "accuracy": round(sum(1 for _, hit in points if hit) / total, 3),
+    }
 
 
 def in_process() -> Dict[str, Any]:
@@ -93,11 +133,13 @@ def run_backend(name: str, call) -> Dict[str, Any]:
         wall = (time.perf_counter() - started) * 1000
         checks = {qid: grade(expected, answers.get(qid, {})) for qid, expected in case["expected"].items()}
         rows.append({
-            "id": case["id"], "group": case["group"], "ms": round(wall, 1),
-            "ok": all(ok for ok, _ in checks.values()),
-            "detail": {qid: {"expected": exp, "got": got, "ok": ok} for qid, (ok, got) in checks.items()},
-            "note": case["note"],
-        })
+			"id": case["id"], "group": case["group"], "ms": round(wall, 1),
+			"ok": all(ok for ok, _, _ in checks.values()),
+			"detail": {qid: {"expected": want, "got": got, "ok": ok, "probability": prob}
+					   for qid, ((ok, got, prob), want) in
+					   ((qid, (checks[qid], case["expected"][qid])) for qid in checks)},
+			"note": case["note"],
+		})
     return {"backend": name, "rows": rows}
 
 
@@ -118,15 +160,16 @@ def summarize(result: Dict[str, Any]) -> Dict[str, Any]:
         "backend": result["backend"],
         "cases": len(scored),
         "correct": sum(1 for row in scored if row["ok"]),
-        "errors": len(rows) - len(scored),
-        "groups": groups,
-        "latency_ms": {
-            "median": round(statistics.median(ordered)) if ordered else None,
-            "p95": round(ordered[max(0, int(len(ordered) * 0.95) - 1)]) if ordered else None,
-            "mean": round(statistics.mean(ordered)) if ordered else None,
-            "max": round(max(ordered)) if ordered else None,
-        },
-    }
+		"errors": len(rows) - len(scored),
+		"groups": groups,
+		"calibration": calibration(rows),
+		"latency_ms": {
+			"median": round(statistics.median(ordered)) if ordered else None,
+			"p95": round(ordered[max(0, int(len(ordered) * 0.95) - 1)]) if ordered else None,
+			"mean": round(statistics.mean(ordered)) if ordered else None,
+			"max": round(max(ordered)) if ordered else None,
+		},
+	}
 
 
 def main() -> None:
@@ -155,6 +198,9 @@ def main() -> None:
               f"p95 {summary['latency_ms']['p95']}ms", flush=True)
         for group, stats in summary["groups"].items():
             print(f"     {group:9s} {stats['correct']}/{stats['cases']}", flush=True)
+        cal = summary["calibration"]
+        if cal["points"]:
+            print(f"     kalibrasyon ECE {cal['ece']}  (bildirilen ort {cal['mean_stated']} / gerçek {cal['accuracy']}, n={cal['points']})", flush=True)
 
     with open(args.out, "w", encoding="utf-8") as handle:
         json.dump(results, handle, indent=1)
